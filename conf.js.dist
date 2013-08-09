@@ -1,0 +1,21 @@
+var protocol = "http";
+var host = "localhost";
+var port = "5984";
+var db = "catconf";
+var admin_user = "admin";
+var admin_password = "admin";
+var auth_raw = admin_user + ':' + admin_password;
+var url = protocol + "://" + host + ":" + port;
+var auth_url = protocol + "://" + admin_user + ':' + admin_password +
+            '@' + host + ":" + port;
+
+
+exports.protocol = protocol;
+exports.host = host;
+exports.port = port;
+exports.db = db;
+exports.admin_user = admin_user;
+exports.admin_password = admin_password;
+exports.auth_raw = auth_raw;
+exports.url = url;
+exports.auth_url = auth_url;

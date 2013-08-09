@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" ng-app>
+
+    <head>
+
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+
+        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+
+        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.min.js"></script>
+
+        <script type="text/javascript"> function define(deps,ns) { libcatconf = ns; }</script>
+        <script type="text/javascript" src="libcatconf.js"></script>
+        <script type="text/javascript" src="demo.js"></script>
+
+        <style>
+            body {
+                padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+            }
+        </style>
+
+    </head>
+
+    <body ng-controller="DemoCtrl">
+
+        <div class="navbar navbar-inverse navbar-fixed-top">
+            <div class="navbar-inner">
+            </div>
+        </div>
+
+        <div class="container">
+
+            <h1>catconf demo</h1>
+
+            <form class="form-inline" ng-hide="loggedIn" ng-submit="showConf()">
+                <input ng-model="userName" placeHolder="Username" type="text"/>
+                <input ng-model="passWord" placeHolder="Password" type="password"/>
+                <button class="btn-primary" id="ok-button" type="submit" name="showconf">
+                    Show conf
+                </button>
+                <button class="btn" type="button" name="login" ng-click="signup()">
+                    Signup
+                </button>
+            </form>
+
+            <div class="alert" ng-show="message"> {{ message }} </div>
+
+            <div ng-show="loggedIn">
+                <button class="btn" name="logout" ng-click="logout()"> Logout </button>
+                <br /> <br />
+                <p>Domains available: {{domains}}.</p>
+
+                <p>Conf for {{userName}}.</p>
+            </div>
+
+            <form class="form-horizontal" id="conf" ng-submit="saveConf()">
+                <div ng-repeat="c in conf" class="control-group">
+
+                    <label class="control-label" for="{{c.key}}">
+                        {{c.key}}
+                    </label>
+                    <div class="controls">
+                        <input type="text" id="{{c.key}}" ng-model="c.value" />
+                    </div>
+                </div>
+                <input type="submit" value="save" />
+            </form>
+
+        </div> <!-- /container -->
+
+    </body>
+
+</html>
+

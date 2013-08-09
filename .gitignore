@@ -1,0 +1,5 @@
+coverage
+koe.json
+node_modules
+conf.js
+.*.swp

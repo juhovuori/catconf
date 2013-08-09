@@ -1,0 +1,18 @@
+{
+    "_id": "_design/catconf",
+    "language": "javascript",
+    "views": {
+        "all": {
+            "map": "function(doc) {\n  emit(doc._id, doc.name);\n}"
+        },
+        "in-domain": {
+            "map": "function(doc) { for(var i in doc.metadata.parents) { emit(doc.metadata.parents[i],doc._id); } }"
+        },
+        "domains": {
+            "map": "function(doc) {\n  if (doc.metadata.authorization===undefined) {\n    emit(doc._id, doc.name);\n  }\n}"
+        },
+        "users": {
+            "map": "function(doc) {\n  if (doc.metadata.authorization!==undefined) {\n    emit(doc._id, doc.name);\n  }\n}"
+        }
+    }
+}
