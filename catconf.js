@@ -230,40 +230,44 @@ function getSingleLevelNode (userId,nodeId) {
     return def;
 }
 
-function constructWithSideEffects (nodeId,nodes,mergedNode) {
+function mergeWithSideEffects (merged,node) {
+    // Merge two single nodes
 
-    function mergeWithSideEffects (merged,node) {
+    log(DEBUG_CONSTRUCTION,'Keys to merge: ' +
+        JSON.stringify(Object.keys(node)));
 
-        for (var key in node) {
+    for (var key in node) {
 
-            var t = typeof(node[key]);
-            var tt = typeof(node[key]);
+        var nodeT = typeof(node[key]);
+        var mergedT = typeof(merged[key]);
 
-            if ((t == 'string') ||
-                (t == 'number') ||
-                (t == 'boolean') ||
-                (t == 'null') ||
-                ((t == 'object') && (tt != 'object'))) {
+        if ((nodeT == 'string') ||
+            (nodeT == 'number') ||
+            (nodeT == 'boolean') ||
+            (nodeT == 'null') ||
+            ((nodeT == 'object') && (mergedT != 'object'))) {
 
-                log(DEBUG_CONSTRUCTION,'Merging key ' + key);
-                merged[key] = node[key]
+            log(DEBUG_CONSTRUCTION,'Merging key ' + key);
+            merged[key] = node[key]
 
-            } else if ((t == 'object') && (tt == 'object')) {
+        } else if ((nodeT == 'object') && (mergedT == 'object')) {
 
-                log(DEBUG_CONSTRUCTION,'Recursively merging key ' + key);
-                merged[key] = {};
-                mergeWithSideEffects(merged[key],node[key]);
+            log(DEBUG_CONSTRUCTION,'Recursively merging key ' + key);
+            mergeWithSideEffects(merged[key],node[key]);
 
-            } else {
+        } else {
 
-                log(DEBUG_CONSTRUCTION,'Not merging key ' + key + ' (' +
-                    node[key] + ')');
+            log(DEBUG_CONSTRUCTION,'Not merging key ' + key + ' (' +
+                node[key] + ')');
 
-            } // skipping undefineds and functions
-
-        }
+        } // skipping undefineds and functions
 
     }
+
+}
+
+function constructWithSideEffects (nodeId,nodes,mergedNode) {
+    // Recursively merge node with its parents
 
     if (nodes[nodeId] === undefined) {
 
@@ -293,6 +297,8 @@ function constructWithSideEffects (nodeId,nodes,mergedNode) {
     // from current node. 
 
     mergedNode.metadata = current.metadata;
+
+    log(DEBUG_CONSTRUCTION,'Merged a new node: ' + JSON.stringify(mergedNode));
 
     return mergedNode;
 
@@ -475,7 +481,7 @@ function listNodes (req,res) {
     function listFail (err) {
 
         log(DEBUG_LIST,'List load failed: ' + JSON.stringify(err));
-        res.send(err.responseText,err.status || 500);
+        res.send(err.responseText+'\n',err.status || 500);
 
     }
 
@@ -539,7 +545,7 @@ function getNode (req,res) {
     function getFail (err) {
 
         log(DEBUG_GET,'Node loading failed');
-        res.send(err.statusText,err.status);
+        res.send(err.statusText+'\n',err.status);
 
     };
 
@@ -581,7 +587,7 @@ function deleteNode (req,res) {
 
         log(DEBUG_DELETE,JSON.stringify(err));
         log(DEBUG_DELETE, 'Delete failed ' + err.status||500 + ' ' + err.statusText);
-        res.send(err.statusText,err.status||500);
+        res.send(err.statusText+'\n',err.status||500);
 
     };
 
@@ -730,7 +736,7 @@ function putNode (req,res) {
         log(DEBUG_PUT, 'Put failed: ' + err.statusText + '(' +
             (err.status||500) + ')');
         log(DEBUG,JSON.stringify(err));
-        res.send(err.statusText,err.status||500);
+        res.send(err.statusText+ '\n',err.status||500);
 
     }
 
@@ -1034,7 +1040,7 @@ function getSession (req,res) {
 
     } else {
 
-        res.send(404,'No session.');
+        res.send(404,'No session.\n');
 
     }
 
@@ -1050,7 +1056,7 @@ function deleteSession (req,res) {
 
     } else {
 
-        res.send(404,'No session.');
+        res.send(404,'No session.\n');
 
     }
 }
@@ -1065,7 +1071,7 @@ function createSession (req,res) {
 
     } else {
 
-        res.send('Forbidden',403);
+        res.send('Forbidden\n',403);
 
     }
 

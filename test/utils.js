@@ -151,7 +151,7 @@ exports.nodeDoesNotExist = function (next,creds,nodeId) {
         done(function(data){next(new Error(nodeId + ' found'));}).
         fail(function(err){
 
-            if (err.status = 404) next();
+            if (err.status == 404) next();
             else next(new Error('Wrong error: ' + err.status));
 
         });
@@ -238,7 +238,9 @@ exports.nodeEquals = function (next,creds,nodeId,node) {
                 } else {
 
                     console.log('GOT: ' + JSON.stringify(data));
+
                     console.log('EXPECTED: ' + JSON.stringify(node));
+
                     next( new Error("Received wrong data."));
 
                 }
@@ -256,7 +258,7 @@ exports.nodeLoadForbidden = function (next,creds,nodeId) {
         done(function(data){next(new Error(nodeId + ' loaded'));}).
         fail(function(err){
 
-            if ((err.status = 401) || (err.status = 403)) next();
+            if ((err.status == 401) || (err.status == 403)) next();
             else next(new Error('Wrong error: ' + err.status));
 
         });

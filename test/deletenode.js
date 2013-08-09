@@ -31,10 +31,10 @@ describe('DELETE', function() {
         deleteNodeForbidden(done,utils.getCreds(data.testUser2),'testuser1');
     });
     it('makes node disappear',function (done) {
-        deleteNode(nextStep,utils.getCreds(data.testUser1),'testuser1');
+        deleteNode(nextStep,utils.getCreds(data.testUser2),'testdomain');
         function nextStep() {
             utils.nodeDoesNotExist(done,utils.getCreds(data.testUser1),
-                'testuser1');
+                'testdomain');
         }
     });
 

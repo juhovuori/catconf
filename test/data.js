@@ -23,7 +23,13 @@ exports.testUser1Full = {
     "language":"fi",
     "enableTooltips":"true",
     "mode":"marc",
-    "systems":{},
+    "systems":{
+        "fennica_t": {
+            "name": "fennica_t",
+            "username": "metiva",
+            "password": "Voyager8?"
+        }
+    },
     "testsetting1":"true",
     "testsetting2":"false",
     "advancedSettings":"true",
@@ -184,10 +190,11 @@ exports.testUser3 = {
             "password": "passT"
         }
     },
+    "systems":{},
     "testsetting1": "true",
     "testsetting2": "false",
     "advancedSettings": "true",
-    "systems": {},
+
     "testsetting3": "false"
 };
 
@@ -200,7 +207,18 @@ exports.testUser3Full = {
     "language":"fi",
     "enableTooltips":"true",
     "mode":"marc",
-    "systems":{},
+    "systems": {
+        "libtest": {
+            "name": "libtest",
+            "username": "aleph",
+            "password": "aleph"
+        },
+        "fennica_t": {
+            "name": "fennica_t",
+            "username": "metiva",
+            "password": "Voyager8?"
+        }
+    },
     "testsetting1":"true",
     "testsetting2":"false",
     "advancedSettings":"true",
