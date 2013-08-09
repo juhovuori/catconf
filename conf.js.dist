@@ -1,21 +1,35 @@
-var protocol = "http";
-var host = "localhost";
-var port = "5984";
-var db = "catconf";
-var admin_user = "admin";
-var admin_password = "admin";
-var auth_raw = admin_user + ':' + admin_password;
-var url = protocol + "://" + host + ":" + port;
-var auth_url = protocol + "://" + admin_user + ':' + admin_password +
-            '@' + host + ":" + port;
+var btoa = require("btoa");
+var db,catconfPort,testConfiguration;
 
+if (process.env.CATCONF_TEST !== undefined) {
+    console.log('running with test configuration.');
+    db = "catconf_test";
+    catconfPort = 3001;
+    testConfiguration = true;
+} else {
+    db = "catconf";
+    catconfPort = 3000;
+    testConfiguration = false;
+}
 
-exports.protocol = protocol;
-exports.host = host;
-exports.port = port;
+exports.catconfUrl = 'http://localhost:' + catconfPort + '/';
+
+exports.protocol = "http";
+exports.host = "localhost";
+exports.port = "5984";
 exports.db = db;
-exports.admin_user = admin_user;
-exports.admin_password = admin_password;
-exports.auth_raw = auth_raw;
-exports.url = url;
-exports.auth_url = auth_url;
+exports.catconfPort = catconfPort;
+exports.testConfiguration = testConfiguration;
+exports.adminUser = "admin";
+exports.adminPassword = "admin";
+exports.authorization = "Basic " + btoa(exports.adminUser + ':' +
+                                        exports.adminPassword);
+exports.couchUrl = exports.protocol + "://" + exports.adminUser +
+                    ':' + exports.adminPassword +
+                    '@' + exports.host + ":" + exports.port;
+
+exports.cookieSecret = 'secretsecret';
+
+
+
+
