@@ -13,9 +13,9 @@ var DEBUG_DELETE = false;
 var DEBUG_AUTH = false;
 var DEBUG_VIEW = false;
 var DEBUG_LIST = false;
-var DEBUG_GET = false;
+var DEBUG_GET = true;
 var DEBUG_PUT = false;
-var DEBUG_QUEUE = false;
+var DEBUG_QUEUE = true;
 var DEBUG_CONSTRUCTION = false;
 var DEBUG = false;
 
@@ -112,6 +112,54 @@ function authorizeAgainstNode(node,user,pass,compared) {
 }
 
 exports.authorizeAgainstNode = authorizeAgainstNode;
+
+function crowdAuthentication(req, res, next) {
+    
+    var AtlassianCrowd = require('atlassian-crowd');
+    
+    var config = {
+      "crowd": {
+        "base": "https://crowd.kiwi.fi/crowd/"
+      },
+      "application": {
+        "name": "cat",
+        "password": "abc"
+      },
+      "cookieName": "crowd.token_key"
+      
+    }
+  
+    var crowd = new AtlassianCrowd(config);
+    var crowd_token = req.cookies[config.cookieName];
+    if (crowd_token !== undefined) {
+      
+        crowd.session.authenticate(crowd_token, '128.214.71.204', function(err, res) {
+            if (err) {
+            
+               unauthorized(err.message);
+               return;
+            }
+            
+            log(DEBUG_AUTH, "User successfully authenticated as: " + res.user.name);
+            
+            req.user = res.user.name;
+            next();
+           
+        });
+
+    } else {
+        // no cookie set!
+        unauthorized("SSO cookie missing: " + config.cookieName);
+    }
+    
+    function unauthorized (msg) {
+        res.statusCode = 401;
+        if (msg === undefined) msg = 'Unauthorized';
+        res.end(msg);
+        // don't call next here, request handling stops.
+    }
+}
+
 
 function catconfAuthentication(req, res, next) {
 
@@ -1086,7 +1134,8 @@ function main() {
         secret:conf.cookieSecret,
         cookie: { maxAge: 14400000 } // session lasts for 4 hours
     }));
-    app.use(catconfAuthentication);
+//    app.use(catconfAuthentication);
+    app.use(crowdAuthentication);
 
     app.get('/session',getSession);
     app.post('/session',createSession);
