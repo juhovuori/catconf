@@ -1,5 +1,21 @@
 #!/usr/bin/env node
 
+var DEBUG_AUTH = true;
+var DEBUG_DELETE = false;
+var DEBUG_VIEW = false;
+var DEBUG_LIST = false;
+var DEBUG_GET = false;
+var DEBUG_PUT = false;
+var DEBUG_QUEUE = false;
+var DEBUG_CONSTRUCTION = false;
+var DEBUG = false;
+
+exports.DEBUG = DEBUG;
+exports.DEBUG_AUTH = DEBUG_AUTH;
+exports.authorizeAgainstNode = authorizeAgainstNode;
+exports.log = log;
+exports.getSingleLevelNode = getSingleLevelNode;
+
 var express = require('express');
 var app = express();
 var conf = require('./conf');
@@ -9,15 +25,7 @@ var atob = require('atob');
 var bcrypt = require('bcrypt');
 var libcatconf = require('./libcatconf');
 
-var DEBUG_DELETE = false;
-var DEBUG_AUTH = false;
-var DEBUG_VIEW = false;
-var DEBUG_LIST = false;
-var DEBUG_GET = true;
-var DEBUG_PUT = false;
-var DEBUG_QUEUE = true;
-var DEBUG_CONSTRUCTION = false;
-var DEBUG = false;
+var authentication = require('./'+conf.authenticationModule);
 
 var logI = 0;
 
@@ -107,149 +115,6 @@ function authorizeAgainstNode(node,user,pass,compared) {
 
         }
 
-    }
-
-}
-
-exports.authorizeAgainstNode = authorizeAgainstNode;
-
-function crowdAuthentication(req, res, next) {
-    
-    var AtlassianCrowd = require('atlassian-crowd');
-    
-    var config = {
-      "crowd": {
-        "base": "https://crowd.kiwi.fi/crowd/"
-      },
-      "application": {
-        "name": "cat",
-        "password": "abc"
-      },
-      "cookieName": "crowd.token_key"
-      
-    }
-  
-    var crowd = new AtlassianCrowd(config);
-    var crowd_token = req.cookies[config.cookieName];
-    if (crowd_token !== undefined) {
-      
-        crowd.session.authenticate(crowd_token, '128.214.71.204', function(err, res) {
-            if (err) {
-            
-               unauthorized(err.message);
-               return;
-            }
-            
-            log(DEBUG_AUTH, "User successfully authenticated as: " + res.user.name);
-            
-            req.user = res.user.name;
-            next();
-           
-        });
-
-    } else {
-        // no cookie set!
-        unauthorized("SSO cookie missing: " + config.cookieName);
-    }
-    
-    function unauthorized (msg) {
-        res.statusCode = 401;
-        if (msg === undefined) msg = 'Unauthorized';
-        res.end(msg);
-        // don't call next here, request handling stops.
-    }
-}
-
-
-function catconfAuthentication(req, res, next) {
-
-    var auth = req.headers.authorization;
-    var user,pass,clearText,i;
-    log(DEBUG,"REQUEST: " + req.method + " " + req.path);
-    delete req.user; // Remove if anything here.
-
-    if (auth) {
-
-        log(DEBUG_AUTH, "Start HTTP authentication");
-        clearText = atob(auth.substring("Basic ".length));
-        var i = clearText.indexOf(":");
-
-        if (i == -1) {
-
-            log(DEBUG_AUTH, "Invalid authorization header " + auth);
-            unauthorized('Invalid authorization header');
-
-        } else {
-
-            user = clearText.substring(0,i);
-            pass = clearText.substring(i+1);
-            log(DEBUG_AUTH, user + "/" + pass);
-
-            if (!user) {
-
-                log(DEBUG_AUTH, "Authentication failed, no user");
-                unauthorized('No user in authorization header');
-
-            } else {
-
-                getSingleLevelNode(user,user).
-                    done (nodeLoaded).
-                    fail (nodeLoadFailed);
-
-            }
-
-        }
-
-    } else if (req.session && req.session.user) {
-
-        req.user = req.session.user;
-        log(DEBUG_AUTH, "Set user from session. " + req.user);
-        next();
-
-    } else {
-
-        log(DEBUG_AUTH, "No session or authorization header, " +
-                        "proceeding as unauthenticated");
-        delete req.user;
-        next();
-
-    }
-
-    function nodeLoaded (node) {
-
-        authorizeAgainstNode(node,user,pass).
-            done(compareOk).
-            fail(compareFail);
-
-    }
-
-    function nodeLoadFailed (err) {
-
-        log(DEBUG_AUTH, "Cannot load user node");
-        unauthorized();
-
-    }
-
-    function compareOk () {
-
-        log(DEBUG_AUTH, "Password comparison succeeded");
-        req.user = user;
-        next();
-
-    }
-
-    function compareFail (err) {
-
-        log(DEBUG_AUTH, "Error: " + err);
-        unauthorized(err);
-
-    }
-
-    function unauthorized (msg) {
-        res.statusCode = 401;
-        if (msg === undefined) msg = 'Unauthorized';
-        res.end(msg);
-        // don't call next here, request handling stops.
     }
 
 }
@@ -1134,8 +999,7 @@ function main() {
         secret:conf.cookieSecret,
         cookie: { maxAge: 14400000 } // session lasts for 4 hours
     }));
-//    app.use(catconfAuthentication);
-    app.use(crowdAuthentication);
+    app.use(authentication);
 
     app.get('/session',getSession);
     app.post('/session',createSession);

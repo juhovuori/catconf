@@ -30,6 +30,19 @@ exports.couchUrl = exports.protocol + "://" + exports.adminUser +
 
 exports.cookieSecret = 'secretsecret';
 
+exports.authenticationModule = 'auth-catconf';
+
+exports.crowdConfig = {
+    "crowd": {
+        "base": "https://crowd.kiwi.fi/crowd/"
+    },
+    "application": {
+        "name": "myAppName",
+        "password": "myAppPassword"
+    },
+    "cookieName": "crowd.token_key"
+    
+}
 
 
 

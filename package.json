@@ -3,6 +3,7 @@
     "description": "Configuration system for cattool",
     "author": "Juho Vuori <juho.vuori@helsinki.fi>",
     "dependencies": {
+        "atlassian-crowd": ">=0.4.4",
         "btoa": "x.x.x",
         "atob": "x.x.x",
         "nano": "x.x.x",
