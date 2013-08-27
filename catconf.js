@@ -23,7 +23,6 @@ var $ = require('jquery');
 var btoa = require('btoa');
 var atob = require('atob');
 var bcrypt = require('bcrypt');
-var libcatconf = require('./libcatconf');
 
 var authentication = require('./'+conf.authenticationModule);
 

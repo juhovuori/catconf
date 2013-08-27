@@ -41,8 +41,5 @@ exports.crowdConfig = {
         "password": "myAppPassword"
     },
     "cookieName": "crowd.token_key"
-    
-}
-
-
+};
 
