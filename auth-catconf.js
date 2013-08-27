@@ -5,7 +5,6 @@ var catconf = require('./catconf');
 var atob = require('atob');
 
 var log = catconf.log;
-console.log(JSON.stringify(Object.keys(catconf)));
 var getSingleLevelNode = catconf.getSingleLevelNode;
 var authorizeAgainstNode = catconf.authorizeAgainstNode;
 var DEBUG_AUTH = catconf.DEBUG_AUTH;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var DEBUG_AUTH = true;
+var DEBUG_AUTH = false;
 var DEBUG_DELETE = false;
 var DEBUG_VIEW = false;
 var DEBUG_LIST = false;
@@ -1029,7 +1029,7 @@ function main() {
         secret:conf.cookieSecret,
         cookie: { maxAge: 14400000 } // session lasts for 4 hours
     }));
-	app.use(CORS);
+    app.use(CORS);
     app.use(authentication);
 
     app.get('/session',getSession);
