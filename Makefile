@@ -6,5 +6,9 @@ coverage:
 test:
 	./runtests.sh $(TESTS)
 
-.PHONY: test coverage
+jsdoc:
+	./node_modules/jsdoc/jsdoc -d jsdoc .
+
+
+.PHONY: test coverage jsdoc
 

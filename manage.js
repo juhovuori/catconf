@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 var doc = "Usage:\n" +
 " manage.js [-Dfhqv] deploy\n" +
 " manage.js [-Dfhqv] install\n" +
@@ -29,7 +27,7 @@ var VERBOSE = false;
 var DEBUG = false;
 var QUIET = false;
 
-if (require.main === module) { main () }
+if (require.main === module) { main (); }
 
 function main() {
     var conf = require('./conf');

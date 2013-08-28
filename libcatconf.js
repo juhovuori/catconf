@@ -1,5 +1,7 @@
-/* Needs jquery.
-   Can be required with commonjs or require.js */
+/**
+ * Needs jquery.
+ * Can be required with commonjs or require.js
+ */
 
 
 (function() {
@@ -65,6 +67,7 @@
 
     var libcatconf = {
 
+        /** return an array of user and domain nodeIds */
         getUsersAndDomains : function (options) {
 
             if (options === undefined) options = {};

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+/** @module auth-catconf */
 
 var conf = require('./conf');
 var catconf = require('./catconf');

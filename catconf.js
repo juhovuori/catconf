@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+/** @module catconf */
 
 var DEBUG_AUTH = false;
 var DEBUG_DELETE = false;
@@ -28,6 +28,7 @@ var authentication = require('./'+conf.authenticationModule);
 
 var logI = 0;
 
+/** log function */
 function log(level,message) {
 
     logI++;
@@ -40,6 +41,7 @@ function log(level,message) {
 
 }
 
+/** parse and validate data read from backend. */
 function parseDBJSON (data) {
 
     // Used as dataFilter to couch request
@@ -1015,6 +1017,10 @@ function CORS(req, res, next) {
 
 
 
+/** Boot server.
+ * First setup express middleware, then setup routing and finally
+ * start listening to a port
+ */
 function main() {
 
     app.use(express.bodyParser());
@@ -1036,12 +1042,12 @@ function main() {
     app.put('/node/:id',putNode);
     app.delete('/node/:id',deleteNode);
 
-    app.listen(conf.catconfPort);
-    log(true,'listening on port ' + conf.catconfPort);
+    /** When running under test configuration,
+     * activate a special killing API to make coverage reports possible
+     */
 
     if (conf.testConfiguration) {
 
-        // activate special killing API to make coverage reports possible
         app.post('/kill', function (req,res) {
 
             res.send('ok.\n');
@@ -1051,6 +1057,9 @@ function main() {
         });
 
     }
+
+    app.listen(conf.catconfPort);
+    log(true,'listening on port ' + conf.catconfPort);
 
 }
 
