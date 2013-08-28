@@ -608,22 +608,6 @@ function putNode (req,res) {
 
     }
 
-    function reduceWithSideEffects (nodeId,node,nodes) {
-
-        // first construct a version of node with inherited properties only
-        var stubNode = { metadata: {parents : node.parents }};
-        nodes[nodeId] = stubNode;
-        var unmergable = constructWithSideEffects(nodeId,nodes,{});
-
-        // preserve special properties
-        delete unmergable.metadata;
-
-        recursiveUnmergeWithSideEffects(node, unmergable);
-
-        return node;
-
-    }
-
     function recursiveUnmergeWithSideEffects (node,unmergable) {
 
         for (var key in unmergable) {
@@ -795,18 +779,29 @@ function putNode (req,res) {
 
         } else {
 
-            var singleLevelNode = reduceWithSideEffects(nodeId,newNode,nodes);
+            // construct a version of node with non-inherited properties only
 
-            var auth = singleLevelNode.metadata.authorization;
+            var stubNode = { metadata: {parents : newNode.parents }};
+            nodes[nodeId] = stubNode;
+            var unmergable = constructWithSideEffects(nodeId,nodes,{});
+
+            // preserve special properties
+            delete unmergable.metadata;
+
+            recursiveUnmergeWithSideEffects(newNode, unmergable);
+
+            // transform authorization and write
+
+            var auth = newNode.metadata.authorization;
 
             if ((typeof auth == 'object') && (auth.type == 'password')) {
 
-                transformAuthorizationAndWrite(singleLevelNode);
+                transformAuthorizationAndWrite(newNode);
 
             } else {
 
                 log(DEBUG_PUT,'Not transforming authorization');
-                writeFinally(singleLevelNode);
+                writeFinally(newNode);
 
             }
 
