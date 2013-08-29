@@ -28,12 +28,17 @@ var authentication = require('./'+conf.authenticationModule);
 
 var logI = 0;
 
-/** log function */
-function log(level,message) {
+/**
+ * log server operation to console
+ * @param {boolean} logOrNot Use one of the predefined names: DEBUG_PUT, etc.
+ * @param {string} message
+ */
+
+function log(logOrNot,message) {
 
     logI++;
 
-    if (level) {
+    if (logOrNot) {
 
         console.log(logI,message);
 
@@ -41,7 +46,10 @@ function log(level,message) {
 
 }
 
-/** parse and validate data read from backend. */
+/**
+ * Parse and validate data read from backend.
+ * @param {string} data Must be a valid JSON object
+ */
 function parseDBJSON (data) {
 
     // Used as dataFilter to couch request
@@ -51,6 +59,10 @@ function parseDBJSON (data) {
 
 }
 
+/**
+ * Return nodeId of the user performing
+ * @param req Express.js request object
+ */
 function getUserId(req) {
 
     return req.user;
@@ -941,6 +953,10 @@ function putNode (req,res) {
 
 }
 
+/**
+ * Returns username and preferred refresh interval for session
+ * GET /session
+ */
 function getSession (req,res) {
 
     if (req.user) {
@@ -955,6 +971,10 @@ function getSession (req,res) {
 
 }
 
+/**
+ * Deletes a session. =logout
+ * DELETE /session
+ */
 function deleteSession (req,res) {
 
     if (req.user) {
@@ -970,6 +990,10 @@ function deleteSession (req,res) {
     }
 }
 
+/**
+ * Creates a session. =login
+ * POST /session
+ */
 function createSession (req,res) {
 
     if (req.user) {
@@ -986,6 +1010,9 @@ function createSession (req,res) {
 
 }
 
+/**
+ * CORS middleware
+ */
 function CORS(req, res, next) {
 
     var oneof = false;

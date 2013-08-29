@@ -10,6 +10,14 @@ var authorizeAgainstNode = catconf.authorizeAgainstNode;
 var DEBUG_AUTH = catconf.DEBUG_AUTH;
 var DEBUG = catconf.DEBUG;
 
+/**
+ * Catconf authentication middleware
+ *
+ * After this is executed req.user is set to the nodeId of a user or
+ * undefined for unauthenticated requests.
+ * This either calls next() or doesn't and responds 401 instead.
+ *
+ */
 function authentication(req, res, next) {
 
     var auth = req.headers.authorization;
@@ -18,6 +26,9 @@ function authentication(req, res, next) {
     delete req.user; // Remove if anything here.
 
     if (auth) {
+
+        // First check if there is a HTTP Authorization header and set
+        // user based on that.
 
         log(DEBUG_AUTH, "Start HTTP authentication");
         clearText = atob(auth.substring("Basic ".length));
@@ -51,11 +62,15 @@ function authentication(req, res, next) {
 
     } else if (req.session && req.session.user) {
 
+        // No authorization header, set user from session
+
         req.user = req.session.user;
         log(DEBUG_AUTH, "Set user from session. " + req.user);
         next();
 
     } else {
+
+        // No authorization header, nor session.
 
         log(DEBUG_AUTH, "No session or authorization header, " +
                         "proceeding as unauthenticated");

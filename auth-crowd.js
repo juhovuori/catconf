@@ -12,6 +12,9 @@ var DEBUG_AUTH = catconf.DEBUG_AUTH;
 
 var logI = 0;
 
+/**
+ * Catconf authentication middleware
+ */
 function authentication(req, res, next) {
     
     var crowd = new AtlassianCrowd(conf.crowdConfig);
