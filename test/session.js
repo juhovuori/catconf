@@ -4,7 +4,6 @@ var $ = require("jquery");
 var utils = require("./utils");
 var data = require("./data");
 var http = require("http");
-var _ = require("underscore");
 
 libcatconf.configure({ urlBase:conf.catconfUrl, });
 
