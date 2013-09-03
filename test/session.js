@@ -4,6 +4,7 @@ var $ = require("jquery");
 var utils = require("./utils");
 var data = require("./data");
 var http = require("http");
+var _ = require("underscore");
 
 libcatconf.configure({ urlBase:conf.catconfUrl, });
 
@@ -60,7 +61,7 @@ describe('session', function() {
     it('- (1) user can login ', function (done) {
 
         myLogin(utils.getCreds(data.testUser1)).
-            fail( function () { done(utils.handleError(err)); } ).
+            fail( function (err) { done(utils.handleError(err)); } ).
             done( function (response) {
 
                 var cookie = response.headers['set-cookie'][0];
@@ -99,6 +100,44 @@ describe('session', function() {
                 else done(new Error('Wrong error: ' + err.status));
 
             });
+
+    });
+
+    it('- password changing with HTTP authentication', function (done) {
+    
+        var node = data.testUser1;
+        var nodeId = utils.getNodeId(node);
+        var creds = utils.getCreds(node);
+        var newNode = JSON.parse(JSON.stringify(node));
+        newNode.metadata.authorization = data.testUser1Auth2;
+        var newCreds = utils.getCreds(newNode);
+        libcatconf.getNode( nodeId, {creds:creds} )
+            .done(changePassword)
+            .fail(function(err) {done(err);});
+
+        function changePassword() {
+            libcatconf.putNode(newNode,{creds:creds})
+                .done(failToReadNewNode)
+                .fail(function(err) {done(err);});
+        }
+
+        function failToReadNewNode() {
+            libcatconf.getNode(nodeId,{creds:creds})
+                .done(function(node) {
+                    console.log(node);
+                    done( new Error(nodeId + ' loaded'));
+                })
+                .fail(function(err) {
+                    if (err.status == 401) readNewNode();
+                    else done(new Error('Wrong error: ' + err.status));
+                });
+        }
+
+        function readNewNode() {
+            libcatconf.getNode(nodeId,{creds:newCreds})
+                .done(function() {done();})
+                .fail(function(err) {done(err);});
+        }
 
     });
 

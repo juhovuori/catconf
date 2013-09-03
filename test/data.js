@@ -15,6 +15,7 @@ exports.testUser1 = {
     "systems": {},
     "testsetting3": "false"
 };
+
 exports.testUser1Full = {
     "metadata": {
         "nodeId":"testuser1",
@@ -34,6 +35,11 @@ exports.testUser1Full = {
     "testsetting2":"false",
     "advancedSettings":"true",
     "testsetting3":"false"
+};
+
+exports.testUser1Auth2 = {
+    "type": "password",
+    "password": "koe2koe2"
 };
 
 exports.testUser1NoMetadata = _.omit(exports.testUser1,"metadata");
