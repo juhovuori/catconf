@@ -43,7 +43,7 @@ function authentication(req, res, next) {
 
             user = clearText.substring(0,i);
             pass = clearText.substring(i+1);
-            log(DEBUG_AUTH, user + "/" + pass);
+            log(DEBUG_AUTH, "Basic auth of: " + user + "/" + pass);
 
             if (!user) {
 

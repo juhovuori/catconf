@@ -215,8 +215,8 @@ exports.getWrongCreds = function (node) {
 
 exports.nodeEquals = function (next,creds,nodeId,node) {
 
-    libcatconf.getNode(nodeId,{creds:creds}).
-        done(function(data){
+    libcatconf.getNode(nodeId,{creds:creds})
+        .done(function(data) {
 
             if (node === undefined) {
 
@@ -247,8 +247,8 @@ exports.nodeEquals = function (next,creds,nodeId,node) {
 
             }
 
-        }).
-        fail(function (err) {next(exports.handleError(err));});
+        })
+        .fail(function (err) { next(exports.handleError(err)); });
 
 };
 

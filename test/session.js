@@ -1,7 +1,9 @@
 var conf = require("../conf");
 var libcatconf = require("../libcatconf");
+var $ = require("jquery");
 var utils = require("./utils");
 var data = require("./data");
+var http = require("http");
 
 libcatconf.configure({ urlBase:conf.catconfUrl, });
 
@@ -57,12 +59,12 @@ describe('session', function() {
 
     it('- (1) user can login ', function (done) {
 
-        libcatconf.login(utils.getCreds(data.testUser1)).
+        myLogin(utils.getCreds(data.testUser1)).
             fail( function () { done(utils.handleError(err)); } ).
-            done( function (res,stat,jqxhr) {
+            done( function (response) {
 
-                var cookie = jqxhr.getResponseHeader('set-cookie')
-                cookie = cookie.substring(0,cookie.indexOf('; '))
+                var cookie = response.headers['set-cookie'][0];
+                cookie = cookie.substring(0,cookie.indexOf('; '));
                 cookieCreds = {cookie: cookie};
                 done();
                 
@@ -72,27 +74,31 @@ describe('session', function() {
 
     it('- (2) logged in user can read his node ', function (done) {
 
-        utils.nodeEquals (done,
-            cookieCreds,
-            utils.getNodeId(data.testUser1),
-            data.testUser1Full);
+        myGetNode( utils.getNodeId(data.testUser1), {creds:cookieCreds} )
+            .done( function () { done(); } )
+            .fail( function (err) { done(utils.handleError(err)); } );
 
     });
 
     it ('- (3) user can logout', function (done) {
 
-        libcatconf.logout(cookieCreds).
-            done( function () { done(); } ).
-            fail( function () { done(utils.handleError(err)); } );
+        myLogout(cookieCreds)
+            .done( function () { done(); } )
+            .fail( function (err) { done(utils.handleError(err)); } );
 
     });
 
     it ('- (4) logged out user cannot read his node', function (done) {
 
-        utils.nodeLoadForbidden(
-            done,
-            cookieCreds,
-            utils.getNodeId(data.testUser1));
+        var nodeId = utils.getNodeId(data.testUser1);
+        myGetNode( nodeId, {creds:cookieCreds} )
+            .done(function(data){console.log(data);done(new Error(nodeId + ' loaded'));})
+            .fail(function(err){
+
+                if ((err.status == 401) || (err.status == 403)) done();
+                else done(new Error('Wrong error: ' + err.status));
+
+            });
 
     });
 
@@ -108,6 +114,105 @@ function getNodeForbidden(next,creds,nodeId) {
             else next(new Error('Wrong error: ' + err.status));
 
         });
+
+}
+
+function myRequest(options) {
+
+    var def = $.Deferred();
+
+    var req = http.request(options, function (res) {
+
+        var data = []
+
+        res.on('data', function (chunk) {
+
+            data.push(chunk);
+
+        });
+
+        res.on('end', function () {
+
+            var options = {
+                headers: res.headers,
+                status: res.statusCode,
+                data: data.join('')
+            };
+
+            if (options.status == 200) {
+
+                def.resolve(options);
+
+            } else {
+
+                def.reject(options);
+
+            }
+
+        });
+
+    });
+
+    req.on('error',function (e) { def.reject(e); });
+
+    req.end();
+
+    return def;
+
+};
+
+/**
+ * Similar to libcatconf.login, but we need a custom version, jquery
+ * cannot handle cookies for testing purposes
+ */
+function myLogin(creds) {
+
+    var options = {
+        hostname: 'localhost',
+        port: conf.catconfPort,
+        path: '/session',
+        method: 'POST',
+        headers: libcatconf.getAuthHeaders(creds)
+    }
+
+    return myRequest(options);
+
+}
+
+/**
+ * Similar to libcatconf.login, but we need a custom version, jquery
+ * cannot handle cookies for testing purposes
+ */
+function myLogout(creds) {
+
+    var options = {
+        hostname: 'localhost',
+        port: conf.catconfPort,
+        path: '/session',
+        method: 'DELETE',
+        headers: libcatconf.getAuthHeaders(creds)
+    }
+
+    return myRequest(options);
+
+}
+
+/**
+ * Similar to libcatconf.getNode, but we need a custom version, jquery
+ * cannot handle cookies for testing purposes
+ */
+function myGetNode (nodeId,opts) {
+
+    var options = {
+        hostname: 'localhost',
+        port: conf.catconfPort,
+        path: '/node/' + nodeId,
+        method: 'GET',
+        query: opts.singleLevel ? '?single-level=1' :'',
+        headers: libcatconf.getAuthHeaders(opts.creds)
+    }
+
+    return myRequest (options);
 
 }
 

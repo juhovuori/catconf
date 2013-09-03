@@ -67,6 +67,8 @@
 
     var libcatconf = {
 
+        getAuthHeaders : getAuthHeaders,
+
         /** return an array of user and domain nodeIds */
         getUsersAndDomains : function (options) {
 
