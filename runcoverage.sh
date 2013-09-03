@@ -19,7 +19,7 @@ trap "echo nicely killing catconf \($CATCONF_PID\);curl -X POST http://localhost
 
 
 sleep 1 # to let catconf boot up
-mocha --reporter list $*
+node_modules/mocha/bin/mocha --reporter list $*
 
 
 ##

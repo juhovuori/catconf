@@ -19,7 +19,7 @@ trap "echo killing catconf \($CATCONF_PID\);kill $CATCONF_PID" INT TERM EXIT
 
 
 sleep 1 # to let catconf boot up
-mocha --reporter list $*
+node_modules/mocha/bin/mocha --reporter list $*
 
 
 ##
