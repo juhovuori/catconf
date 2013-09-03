@@ -4,11 +4,9 @@ var conf = require('./conf');
 var catconf = require('./catconf');
 var atob = require('atob');
 
-var log = catconf.log;
+var log = require('./logging').log;
 var getSingleLevelNode = catconf.getSingleLevelNode;
 var authorizeAgainstNode = catconf.authorizeAgainstNode;
-var DEBUG_AUTH = catconf.DEBUG_AUTH;
-var DEBUG = catconf.DEBUG;
 
 /**
  * Catconf authentication middleware
@@ -22,7 +20,7 @@ function authentication(req, res, next) {
 
     var auth = req.headers.authorization;
     var user,pass,clearText,i;
-    log(DEBUG,"REQUEST: " + req.method + " " + req.path);
+    log('request',"REQUEST: " + req.method + " " + req.path);
     delete req.user; // Remove if anything here.
 
     if (auth) {
@@ -30,24 +28,24 @@ function authentication(req, res, next) {
         // First check if there is a HTTP Authorization header and set
         // user based on that.
 
-        log(DEBUG_AUTH, "Start HTTP authentication");
+        log('auth', "Start HTTP authentication");
         clearText = atob(auth.substring("Basic ".length));
         var i = clearText.indexOf(":");
 
         if (i == -1) {
 
-            log(DEBUG_AUTH, "Invalid authorization header " + auth);
+            log('auth', "Invalid authorization header " + auth);
             unauthorized('Invalid authorization header');
 
         } else {
 
             user = clearText.substring(0,i);
             pass = clearText.substring(i+1);
-            log(DEBUG_AUTH, "Basic auth of: " + user + "/" + pass);
+            log('auth', "Basic auth of: " + user + "/" + pass);
 
             if (!user) {
 
-                log(DEBUG_AUTH, "Authentication failed, no user");
+                log('auth', "Authentication failed, no user");
                 unauthorized('No user in authorization header');
 
             } else {
@@ -65,14 +63,14 @@ function authentication(req, res, next) {
         // No authorization header, set user from session
 
         req.user = req.session.user;
-        log(DEBUG_AUTH, "Set user from session. " + req.user);
+        log('auth', "Set user from session. " + req.user);
         next();
 
     } else {
 
         // No authorization header, nor session.
 
-        log(DEBUG_AUTH, "No session or authorization header, " +
+        log('auth', "No session or authorization header, " +
                         "proceeding as unauthenticated");
         delete req.user;
         next();
@@ -89,14 +87,14 @@ function authentication(req, res, next) {
 
     function nodeLoadFailed (err) {
 
-        log(DEBUG_AUTH, "Cannot load user node");
+        log('auth', "Cannot load user node");
         unauthorized();
 
     }
 
     function compareOk () {
 
-        log(DEBUG_AUTH, "Password comparison succeeded");
+        log('auth', "Password comparison succeeded");
         req.user = user;
         next();
 
@@ -104,7 +102,7 @@ function authentication(req, res, next) {
 
     function compareFail (err) {
 
-        log(DEBUG_AUTH, "Error: " + err);
+        log('auth', "Error: " + err);
         unauthorized(err);
 
     }

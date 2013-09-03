@@ -1,6 +1,27 @@
 var btoa = require("btoa");
 var db,catconfPort,testConfiguration;
 
+exports.logging = {
+    'logfile' : './catconf.log', // filename or undefined for no logging
+    'logOnScreen' : true, // true or false
+    'timestamp' : 'YYYY-MM-DD HH:mm:ss.SSS',
+    'aspects': {
+
+        'auth' : false,
+        'delete' : false,
+        'view' : false,
+        'list' : false,
+        'get' : false,
+        'put' : false,
+        'queue' : false,
+        'construction' : false,
+        'request' : true,
+        'startup' : true,
+        'log' : true       // Log logging errors, do not disable this
+
+    }
+};
+
 if (process.env.CATCONF_TEST !== undefined) {
     console.log('running with test configuration.');
     db = "catconf_test";
@@ -31,6 +52,7 @@ exports.couchUrl = exports.protocol + "://" + exports.adminUser +
 exports.cookieSecret = 'secretsecret';
 
 exports.authenticationModule = 'auth-catconf';
+//exports.authenticationModule = 'auth-crowd';
 
 exports.crowdConfig = {
     "crowd": {

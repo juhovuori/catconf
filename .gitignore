@@ -3,4 +3,5 @@ coverage
 koe.json
 node_modules
 conf.js
+catconf.log
 .*.swp

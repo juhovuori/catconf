@@ -1,19 +1,6 @@
 /** @module catconf */
 
-var DEBUG_AUTH = false;
-var DEBUG_DELETE = false;
-var DEBUG_VIEW = false;
-var DEBUG_LIST = false;
-var DEBUG_GET = false;
-var DEBUG_PUT = false;
-var DEBUG_QUEUE = false;
-var DEBUG_CONSTRUCTION = false;
-var DEBUG = false;
-
-exports.DEBUG = DEBUG;
-exports.DEBUG_AUTH = DEBUG_AUTH;
 exports.authorizeAgainstNode = authorizeAgainstNode;
-exports.log = log;
 exports.getSingleLevelNode = getSingleLevelNode;
 
 var express = require('express');
@@ -23,28 +10,9 @@ var $ = require('jquery');
 var btoa = require('btoa');
 var atob = require('atob');
 var bcrypt = require('bcrypt');
+var log = require('./logging').log;
 
 var authentication = require('./'+conf.authenticationModule);
-
-var logI = 0;
-
-/**
- * log server operation to console
- * @param {boolean} logOrNot Use one of the predefined names: DEBUG_PUT, etc.
- * @param {string} message
- */
-
-function log(logOrNot,message) {
-
-    logI++;
-
-    if (logOrNot) {
-
-        console.log(logI,message);
-
-    }
-
-}
 
 /**
  * Parse and validate data read from backend.
@@ -139,7 +107,7 @@ function getSingleLevelNode (userId,nodeId) {
         url : getUrl(nodeId),
     };
     var def = $.Deferred();
-    log(DEBUG_QUEUE,'Requesting ' + options.url);
+    log('queue','Requesting ' + options.url);
 
     $.ajax( options ).done(dataReadDone).fail(dataReadFailed);
 
@@ -159,7 +127,7 @@ function getSingleLevelNode (userId,nodeId) {
 function mergeWithSideEffects (merged,node) {
     // Merge two single nodes
 
-    log(DEBUG_CONSTRUCTION,'Keys to merge: ' +
+    log('construction','Keys to merge: ' +
         JSON.stringify(Object.keys(node)));
 
     for (var key in node) {
@@ -173,17 +141,17 @@ function mergeWithSideEffects (merged,node) {
             (nodeT == 'null') ||
             ((nodeT == 'object') && (mergedT != 'object'))) {
 
-            log(DEBUG_CONSTRUCTION,'Merging key ' + key);
+            log('construction','Merging key ' + key);
             merged[key] = node[key]
 
         } else if ((nodeT == 'object') && (mergedT == 'object')) {
 
-            log(DEBUG_CONSTRUCTION,'Recursively merging key ' + key);
+            log('construction','Recursively merging key ' + key);
             mergeWithSideEffects(merged[key],node[key]);
 
         } else {
 
-            log(DEBUG_CONSTRUCTION,'Not merging key ' + key + ' (' +
+            log('construction','Not merging key ' + key + ' (' +
                 node[key] + ')');
 
         } // skipping undefineds and functions
@@ -213,7 +181,7 @@ function constructWithSideEffects (nodeId,nodes,mergedNode) {
 
     }
 
-    log(DEBUG_CONSTRUCTION,'Merging ' + JSON.stringify(current) + ' to ' + 
+    log('construction','Merging ' + JSON.stringify(current) + ' to ' + 
         JSON.stringify(mergedNode));
     mergeWithSideEffects(mergedNode,current);
 
@@ -224,7 +192,7 @@ function constructWithSideEffects (nodeId,nodes,mergedNode) {
 
     mergedNode.metadata = current.metadata;
 
-    log(DEBUG_CONSTRUCTION,'Merged a new node: ' + JSON.stringify(mergedNode));
+    log('construction','Merged a new node: ' + JSON.stringify(mergedNode));
 
     return mergedNode;
 
@@ -237,7 +205,7 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
         function possiblyAllDone() {
 
-            log(DEBUG_QUEUE,'Maybe load is done.');
+            log('queue','Maybe load is done.');
 
             for (var key in loadBuffer) {
 
@@ -245,7 +213,7 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
                 if (singleLoadDef.state() == "rejected") {
 
-                    log(DEBUG_QUEUE,'Load done and failed');
+                    log('queue','Load done and failed');
                     wholeQueueDef.reject({
                         statusText:'node not found.\n',
                         status:404
@@ -265,7 +233,7 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
             }
 
-            log(DEBUG_QUEUE,'Yes, loaded ' +
+            log('queue','Yes, loaded ' +
                 JSON.stringify(Object.keys(loadBuffer)));
             // if we got this far, all is done.
             wholeQueueDef.resolve(loadBuffer);
@@ -308,7 +276,7 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
         function singleLoadFailed(err) {
 
-            log(DEBUG_QUEUE,'Load failed: ' + JSON.stringify(err));
+            log('queue','Load failed: ' + JSON.stringify(err));
 
             if (parentsOverRide !== undefined) {
 
@@ -347,7 +315,7 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
         }
 
-        log(DEBUG_QUEUE,'Queuing load ' + nodeId);
+        log('queue','Queuing load ' + nodeId);
         // Only load a node once.
 
         if (loadBuffer[nodeId] !== undefined) return;
@@ -389,7 +357,7 @@ function listNodes (req,res) {
 
     function listLoaded(ob) {
 
-        log(DEBUG_LIST,'List loaded');
+        log('list','List loaded');
 
         if ((ob instanceof Object) && (ob.rows instanceof Array)) {
 
@@ -406,7 +374,7 @@ function listNodes (req,res) {
     
     function listFail (err) {
 
-        log(DEBUG_LIST,'List load failed: ' + JSON.stringify(err));
+        log('list','List load failed: ' + JSON.stringify(err));
         res.send(err.responseText+'\n',err.status || 500);
 
     }
@@ -451,7 +419,7 @@ function getView(view,params) {
         dataFilter: parseDBJSON,
         processData: false
     };
-    log(DEBUG_VIEW,options);
+    log('view',options);
 
     return $.ajax( options );
 
@@ -463,14 +431,14 @@ function getNode (req,res) {
     var singleLevel = req.query['single-level'] !== undefined;
     var rawData = req.query['raw'] !== undefined;
 
-    log(DEBUG_GET,'Start getting node ' + nodeId);
+    log('get','Start getting node ' + nodeId);
     queueNodeLoad(getUserId(req),nodeId,singleLevel).
         done(getDataLoaded).
         fail(getFail);
 
     function getFail (err) {
 
-        log(DEBUG_GET,'Node loading failed');
+        log('get','Node loading failed');
         res.send(err.statusText+'\n',err.status);
 
     };
@@ -479,9 +447,9 @@ function getNode (req,res) {
 
         // All authentication is already done in getSingleLevelNode
 
-        log(DEBUG_CONSTRUCTION,'Start constructing node ' + nodeId);
+        log('construction','Start constructing node ' + nodeId);
         var merged = constructWithSideEffects(nodeId,nodesLoaded,{});
-        log(DEBUG_CONSTRUCTION,'Constructed ' + JSON.stringify(merged));
+        log('construction','Constructed ' + JSON.stringify(merged));
         merged.metadata.nodeId = merged._id;
 
         if (!rawData) {
@@ -511,8 +479,8 @@ function deleteNode (req,res) {
 
     function deleteFail (err) {
 
-        log(DEBUG_DELETE,JSON.stringify(err));
-        log(DEBUG_DELETE, 'Delete failed ' + err.status||500 + ' ' + err.statusText);
+        log('delete',JSON.stringify(err));
+        log('delete', 'Delete failed ' + err.status||500 + ' ' + err.statusText);
         res.send(err.statusText+'\n',err.status||500);
 
     };
@@ -589,7 +557,7 @@ function deleteNode (req,res) {
 
     }
 
-    log (DEBUG_DELETE,'Attempting to delete ' + nodeId);
+    log ('delete','Attempting to delete ' + nodeId);
     getSingleLevelNode ( getUserId(req), nodeId ).
         done(deleteNodeLoaded).
         fail(deleteFail);
@@ -605,7 +573,7 @@ function putNode (req,res) {
     var nodes;
     var singleLevel = req.query['single-level'] !== undefined;
 
-    log(DEBUG_PUT,'Start writing node '+nodeId);
+    log('put','Start writing node '+nodeId);
     var error = validateNodeForm(newNode,nodeId);
 
     if (error) {
@@ -614,7 +582,7 @@ function putNode (req,res) {
 
     } else {
 
-        log(DEBUG_PUT,'Node validated ok');
+        log('put','Node validated ok');
         queueNodeLoad (getUserId(req),nodeId,singleLevel,
                         newNode.metadata.parents,true).
             done(putDataLoaded).
@@ -643,9 +611,9 @@ function putNode (req,res) {
 
     function putFail (err) {
 
-        log(DEBUG_PUT, 'Put failed: ' + err.statusText + '(' +
+        log('put', 'Put failed: ' + err.statusText + '(' +
             (err.status||500) + ')');
-        log(DEBUG,JSON.stringify(err));
+        log('put',JSON.stringify(err));
         res.send(err.statusText+ '\n',err.status||500);
 
     }
@@ -654,7 +622,7 @@ function putNode (req,res) {
 
     function putOk (data) {
 
-        log(DEBUG_PUT,'Node written succesfully');
+        log('put','Node written succesfully');
         res.send(data);
 
     }
@@ -814,7 +782,7 @@ function putNode (req,res) {
 
             } else {
 
-                log(DEBUG_PUT,'Not transforming authorization');
+                log('put','Not transforming authorization');
                 writeFinally(newNode);
 
             }
@@ -825,7 +793,7 @@ function putNode (req,res) {
 
     function transformAuthorizationAndWrite(singleLevelNode) {
 
-        log(DEBUG_PUT,'Start transforming node authorization');
+        log('put','Start transforming node authorization');
         var password = singleLevelNode.metadata.authorization.password;
 
         bcrypt.genSalt(10, function(err, salt) {
@@ -846,7 +814,7 @@ function putNode (req,res) {
 
                         var auth = { type : 'bcrypt', crypted : crypted }
                         singleLevelNode.metadata.authorization = auth;
-                        log(DEBUG_PUT,'Transformed authorization to ' + JSON.stringify(auth));
+                        log('put','Transformed authorization to ' + JSON.stringify(auth));
                         writeFinally(singleLevelNode);
 
                     }
@@ -869,8 +837,8 @@ function putNode (req,res) {
             type : 'PUT'
         };
 
-        log(DEBUG_PUT,'Finally writing node "' + nodeId + '"');
-        log(DEBUG_PUT,options.data);
+        log('put','Finally writing node "' + nodeId + '"');
+        log('put',options.data);
 
         $.ajax( options ).
             done( putOk ).
@@ -906,7 +874,7 @@ function putNode (req,res) {
         if (oldNode !== undefined) {
 
             // There was an earlier node here.
-            log(DEBUG_PUT,'Authorizing rewrite of existing node.');
+            log('put','Authorizing rewrite of existing node.');
 
             if (oldNode.metadata.authorization !== undefined) {
 
@@ -944,7 +912,7 @@ function putNode (req,res) {
 
         } else {
 
-            log(DEBUG_PUT,'Authorizing creation of a new node');
+            log('put','Authorizing creation of a new node');
             validateAndTransform();
 
         }
@@ -1086,7 +1054,7 @@ function main() {
     }
 
     app.listen(conf.catconfPort);
-    log(true,'listening on port ' + conf.catconfPort);
+    log('startup','listening on port ' + conf.catconfPort);
 
 }
 
