@@ -12,6 +12,7 @@ var atob = require('atob');
 var bcrypt = require('bcrypt');
 var log = require('./logging').log;
 
+var package_json = require('./package.json');
 var authentication = require('./'+conf.authenticationModule);
 
 /**
@@ -1054,6 +1055,8 @@ function main() {
     }
 
     app.listen(conf.catconfPort);
+
+    log('startup','catconf ' + package_json.version);
     log('startup','listening on port ' + conf.catconfPort);
 
 }
