@@ -20,7 +20,6 @@ function authentication(req, res, next) {
 
     var auth = req.headers.authorization;
     var user,pass,clearText,i;
-    log('request',"REQUEST: " + req.method + " " + req.path);
     delete req.user; // Remove if anything here.
 
     if (auth) {

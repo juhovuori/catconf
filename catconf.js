@@ -38,6 +38,13 @@ function getUserId(req) {
 
 }
 
+function myRequestMiddleware(req, res, next) {
+
+    log('request',"REQUEST: " + req.method + " " + req.path);
+    next();
+
+}
+
 function authorizeAgainstNode(node,user,pass,compared) {
 
     var def = $.Deferred();
@@ -1019,7 +1026,7 @@ function CORS(req, res, next) {
  */
 function main() {
 
-    app.use(express.bodyParser());
+    app.use(myRequestMiddleware);
     app.use(express.cookieParser(conf.cookieSecret));
     app.use(express.session({
         key: "catconf.sid",
@@ -1027,6 +1034,7 @@ function main() {
         cookie: { maxAge: 14400000 } // session lasts for 4 hours
     }));
     app.use(CORS);
+    app.use(express.bodyParser());
     app.use(authentication);
 
     app.get('/session',getSession);
