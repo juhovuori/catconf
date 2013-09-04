@@ -1,22 +1,38 @@
 catconf
 =======
 
-To install from scratch:
+An inheriting configuration database.
 
-1. Install and start couchdb
-2. Create a couchdb admin with password
-3. cp conf.js.dist to conf.js
-4. Edit conf.js to reflect your couchdb settings
-5. npm install
-6. ./manage.js install
-6. ./manage.js deploy
+Quickstart
+----------
 
-
+Following steps are required to get catconf up and running on a freshly
+installed Linux system. The procedure is tested on freshly installed CentOS 6
+box, but should work on any Unix-like system with minor modifications. 
+The author has no idea how to install catconf on Windows.
 
 
+1. Install git to get the code from https://github.com/juhovuori/catconf.git
+2. Install and start couchdb (from EPEL repository on CentOS)
+3. Create a couchdb admin with password
+4. cp conf.js.dist to conf.js and edit it to reflect your couchdb settings
+5. Install node.js, npm and make
+6. Install js dependencies: npm install && npm update
+7. node manage.js install
+8. node catconf.js
+
+That's it. You should now have catconf running. There is a file named
+install\_test.sh that performs exactly the steps above. It is used to test the
+installation procedure. It is not guaranteed to work on any particular
+system, but you can take a look at it as an additional documentation if
+something goes wrong.
+
+
+Overview
+--------
 
 Termejä
-=======
+-------
 
 * *nodeId* String. javuori, petuomin, domain\_helka, jne.
 
@@ -31,7 +47,7 @@ Termejä
 * *authenticatedUserId* Kirjautuneen käyttäjän userId. (=käyttäjän noden node\_id)
 
 Tietorakenne
-============
+------------
 
 Konfiguraatiotietokanta koostuu nodeista. Kukin node on JSON-serialisoituva olio, joka sisältää vapaavalintaisia propertyjä, sekä konfiguraatiojärjestelmän oman metadata-propertyn \_. Metadata-property ei periydy.
 

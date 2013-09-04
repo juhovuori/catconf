@@ -2,7 +2,7 @@
     "name": "catconf",
     "description": "Inheriting configuration database",
     "author": "Juho Vuori <juho.vuori@helsinki.fi>",
-    "version": "0.1",
+    "version": "0.9.0",
     "dependencies": {
         "atlassian-crowd": ">=0.4.4",
         "btoa": "x.x.x",

@@ -246,8 +246,8 @@ function install(server,db) {
             console.log('Database creation failed: ' + err);
             process.exit(1);
         } else {
-            console.log('Database created. You must still run deploy.');
-            process.exit(0);
+            console.log('Database created. Initializing.');
+            deploy(db);
         }
     });
 }
