@@ -247,7 +247,7 @@ function install(server,db) {
             process.exit(1);
         } else {
             console.log('Database created. Initializing.');
-            deploy(db);
+            deploy( server.db.use(db) );
         }
     });
 }

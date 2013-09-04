@@ -25,7 +25,7 @@ sudo rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm
 
 ## Install couchdb
 
-sudo yum install couch
+sudo yum install couchdb
 sudo service couchdb start
 chkconfig --level 2 couchdb on
 
@@ -55,10 +55,10 @@ npm update
 
 ## Setup database
 
-node manage install
+node manage.js install
 
 ## Open a port from firewall
-sudo iptables -A INPUT -p tcp -m state --state NEW -m tcp --dport 3000 -j ACCEPT 
+sudo iptables -I INPUT 5 -p tcp -m state --state NEW -m tcp --dport 3000 -j ACCEPT 
 
 # Run server
 
