@@ -45,6 +45,22 @@ function myRequestMiddleware(req, res, next) {
 
 }
 
+function bodyParserErrorMiddleware(err, req, res, next) {
+
+    // This is here to handle invalid json in request body.
+
+    if (false) {
+
+        res.send(err.status,err.message);
+
+    } else {
+
+        next();
+
+    }
+
+}
+
 function authorizeAgainstNode(node,user,pass,compared) {
 
     var def = $.Deferred();
@@ -1035,6 +1051,7 @@ function main() {
     }));
     app.use(CORS);
     app.use(express.bodyParser());
+    app.use(bodyParserErrorMiddleware);
     app.use(authentication);
 
     app.get('/session',getSession);
