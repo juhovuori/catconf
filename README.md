@@ -1,8 +1,3 @@
-catconf
-=======
-
-An inheriting configuration database.
-
 Quickstart
 ----------
 
@@ -31,20 +26,100 @@ something goes wrong.
 Overview
 --------
 
-Termejä
--------
+Catconf is an inheriting configuration database.
 
-* *nodeId* String. javuori, petuomin, domain\_helka, jne.
+Configuration is stored as a set of nodes that represent configuration of some sort. Each node is a JSON document. Each node can have parent nodes. Child nodes inherit configuration values of its parents.
 
-* *user-node* Node, joka sisältää käyttäjän oman konfiguraation.
-* *global-node* Node, jolla ei ole parentteja. Luettelointiohjelma-spesifi termi.
-* *domain-node* User-noden ja global-noden välissä olevat nodet. Tämä on luettelointiohjelma-spesifi termi.
-* *node* "Konfiguraatiotietue". JSON-serialisoituva data. Ilman erillistä tarkennusta node tarkoittaa aina koko nodea. Kts koko node ja single-level node.
-* *single-level node* Noden oma data, josta parenteilta periytetyt propertyt on suodatettu pois.
-* *koko node* Node, mukaanlukien noden oma data ja parenteilta periytetyt propertyt. Normaalisti sanotaan vain node.
+Catconf implements an authorization scheme that effectively divides nodes into
+two classes: domain nodes and user nodes. Domain nodes are the nodes that can
+be inherited from. User nodes contain possibly secret configuration values of
+individual users and can only be read by respective users.
 
-* *property* noden property.
-* *authenticatedUserId* Kirjautuneen käyttäjän userId. (=käyttäjän noden node\_id)
+Currently catconf uses CouchDB as its storage backend and implements a REST
+API for its applications.
+
+
+Inheritance
+-----------
+
+Catconf distinguishes between _full nodes_ and _single-level nodes_. Full
+nodes are the JSON documents that are read from and written to catconf.
+Single-level nodes are the JSON documents stored internally.
+
+Inheritance is the construction of full nodes from a set of single-level
+nodes. Intuitively, inheritance means that the properties of nodes
+parents are also node's properties unless explicitly overridden by
+node itself.
+
+Given a single-level node:
+
+    {
+        "fullname": "Pekka Pikkanen",
+        "enable": {
+            "tooltips": true,
+            "sounds": false
+        },
+        "metadata": {
+            "nodeId": "pekka",
+            "parents": ["myDomain"],
+            "authorization": {
+                "type" : "bcrypt",
+                "crypted": "xxxxxxxxxxxxxxx"
+            }
+        }
+    }
+
+And it's parent:
+
+    {
+        "extra":"data",
+        "enable": {
+            "sounds":true,
+            "magic":true
+        },
+        "metadata": {
+            "nodeId": "myDomain",
+            "parents": [],
+        }
+    }
+
+The full node, when read from the database will turn out as follows:
+
+    {
+        "fullname": "Pekka Pikkanen",
+        "extra":"data",
+        "enable": {
+            "tooltips": true,
+            "sounds": false,
+            "magic":true
+        },
+        "metadata": {
+            "nodeId": "pekka",
+            "parents": ["myDomain"],
+            "authorization": {
+                "type" : "bcrypt",
+                "crypted": "xxxxxxxxxxxxxxx"
+            }
+        }
+    }
+
+There is a special property `metadata` that is never inherited. `metadata`
+of a full node is (almost) always the same as the metadata of a single-level
+node. Other properties are constructed as follows.
+
+1. As a starting point: set `fullNode = singleLevelNode.metadata.parents[0];` (Suppose there is exactly one parent, we'll deal with multiple parents later)
+2. For each non-object property `prop` set `fullNode[prop] = singleLevelNode[prop];`
+3. For each object-property `prop` of single-level node recursively use the same process to overwrite each subproperty of the parent with corresponding subproperty of the single-level node `fullNode[prop][subProp] = singleLevelNode[prop][subProp]`
+
+If there are no parents, then `fullNode = singleLevelNode`. If there are more
+than one parent then inheritance works 'left to right'. First begin with
+parents[0] and construct intermediate node by adding properties of parents[1],
+etc. And finally, when all parents are combined, add properties of
+the single-level node itself.
+
+Parent-nodes may contain parents of their own. Inheritance loops are
+not allowed.
+
 
 Tietorakenne
 ------------
@@ -79,6 +154,22 @@ Nodet tallennetaan single-level nodeina ja yhdistetään lennosta luettaessa kok
 Propertyt yhdistetään niin, että jokainen lapsen lehtiproperty kirjoitetaan vanhemman ko. lehtipropertyjen päälle. Puuttuvia propertyjä varten luodaan uudet propertyt. Vanhempien propertyt eivät voi poistua.
 
 Myös Arrayt periytyvät näin. Noudatellaan javascriptin array-tulkintaa: Array on olio siinä missä muutkin, arrayn propertyt ovat sen indeksit 0, 1, 2, ... Arrayn käyttö on mahdollista, mutta tsekattava, että periytymisen semantiikka on se, mitä halutaan.
+
+
+Termejä
+-------
+
+* *nodeId* String. javuori, petuomin, domain\_helka, jne.
+
+* *user-node* Node, joka sisältää käyttäjän oman konfiguraation.
+* *global-node* Node, jolla ei ole parentteja. Luettelointiohjelma-spesifi termi.
+* *domain-node* User-noden ja global-noden välissä olevat nodet. Tämä on luettelointiohjelma-spesifi termi.
+* *node* "Konfiguraatiotietue". JSON-serialisoituva data. Ilman erillistä tarkennusta node tarkoittaa aina koko nodea. Kts koko node ja single-level node.
+* *single-level node* Noden oma data, josta parenteilta periytetyt propertyt on suodatettu pois.
+* *koko node* Node, mukaanlukien noden oma data ja parenteilta periytetyt propertyt. Normaalisti sanotaan vain node.
+
+* *property* noden property.
+* *authenticatedUserId* Kirjautuneen käyttäjän userId. (=käyttäjän noden node\_id)
 
 API
 ===
