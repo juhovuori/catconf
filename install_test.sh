@@ -60,8 +60,11 @@ node manage.js install
 ## Open a port from firewall
 sudo iptables -I INPUT 5 -p tcp -m state --state NEW -m tcp --dport 3000 -j ACCEPT 
 
+## Run tests
+make test
+
 # Run server
 
-node catconf.js
+# node catconf.js
 
 

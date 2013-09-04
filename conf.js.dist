@@ -27,6 +27,8 @@ if (process.env.CATCONF_TEST !== undefined) {
     db = "catconf_test";
     catconfPort = 3001;
     testConfiguration = true;
+    exports.logging.aspects.request = false;
+    exports.logging.aspects.startup = false;
 } else {
     db = "catconf";
     catconfPort = 3000;
