@@ -25,14 +25,9 @@ sudo rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm
 
 ## Install couchdb
 
-sudo yum install couchdb
+sudo yum -y install couchdb
 sudo service couchdb start
-chkconfig --level 2 couchdb on
-
-
-## Create couchdb admin user
-
-curl -X PUT http://localhost:5984/_config/admins/admin -d '"admin"'
+sudo chkconfig --level 2 couchdb on
 
 
 ## Cp and edit conf.js
@@ -51,6 +46,11 @@ sudo yum -y install nodejs npm make
 
 npm install
 npm update
+
+
+## Create couchdb admin user
+
+curl -X PUT http://localhost:5984/_config/admins/admin -d '"admin"'
 
 
 ## Setup database
