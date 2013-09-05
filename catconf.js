@@ -1,7 +1,6 @@
 /** @module catconf */
 
 exports.authorizeAgainstNode = authorizeAgainstNode;
-exports.getSingleLevelNode = getSingleLevelNode;
 
 var express = require('express');
 var app = express();
@@ -119,30 +118,6 @@ function authorizeAgainstNode(node,user,pass,compared) {
 
     }
 
-}
-
-function getSingleLevelNode (userId,nodeId) {
-
-    var options = {
-        dataFilter: parseDBJSON,
-        url : getUrl(nodeId),
-    };
-    var def = $.Deferred();
-    log('queue','Requesting ' + options.url);
-
-    $.ajax( options ).done(dataReadDone).fail(dataReadFailed);
-
-    function dataReadFailed (err) {def.reject(err);}
-    function dataReadDone (data) {
-        if (data.metadata.authorization !== undefined) {
-            if (data.metadata.nodeId == userId) def.resolve(data);
-            else def.reject({status:403,
-                        statusText: "Cannot read other users\' nodes"});
-        } else {
-            def.resolve(data);
-        }
-    }
-    return def;
 }
 
 function mergeWithSideEffects (merged,node) {
@@ -341,7 +316,7 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
         if (loadBuffer[nodeId] !== undefined) return;
 
-        var singleLoadDef = getSingleLevelNode(userId,nodeId);
+        var singleLoadDef = storage.getNode(userId,nodeId);
         defBuffer[nodeId] = singleLoadDef;
         loadBuffer[nodeId] = {};
 
@@ -365,12 +340,6 @@ function getUrl (nodeId) {
     if (nodeId !== undefined) suffix += '/' + nodeId;
 
     return conf.couchUrl + '/' + suffix;
-
-}
-
-function getViewUrl (view) {
-
-    return getUrl('_design/catconf/_view/' + view);
 
 }
 
@@ -413,26 +382,6 @@ function listNodes (req,res) {
 
 }
 
-function getView(view,params) {
-
-    var body = {};
-
-    if (params) { body = {keys : [params] } };
-
-    var options =  {
-        type : 'POST',
-        url : getViewUrl(view),
-        contentType: "application/json",
-        data: JSON.stringify(body),
-        dataFilter: parseDBJSON,
-        processData: false
-    };
-    log('view',options);
-
-    return $.ajax( options );
-
-}
-
 function getNode (req,res) {
 
     var nodeId = req.params.id;
@@ -453,7 +402,7 @@ function getNode (req,res) {
 
     function getDataLoaded (nodesLoaded) {
 
-        // All authentication is already done in getSingleLevelNode
+        // All authentication is already done in storage.getNode
 
         log('construction','Start constructing node ' + nodeId);
         var merged = constructWithSideEffects(nodeId,nodesLoaded,{});
@@ -483,10 +432,10 @@ function deleteNode (req,res) {
 
     var nodeId = req.params.id;
     var oldNode;
-    var children = [];
 
     log ('delete','Attempting to delete ' + nodeId);
-    getSingleLevelNode ( getUserId(req), nodeId ).
+
+    storage.getNode ( getUserId(req), nodeId ).
         done(deleteNodeLoaded).
         fail(deleteFail);
 
@@ -500,7 +449,7 @@ function deleteNode (req,res) {
 
     function deleteOk (data) { res.send(data); }
 
-    function authorizeDelete (userId) {
+    function authorizeDelete (userId,children) {
 
         if (typeof oldNode != 'object') return "Invalid node";
 
@@ -527,7 +476,7 @@ function deleteNode (req,res) {
 
         }
 
-        if (children.rows.length != 0) {
+        if (children.length != 0) {
 
             // Cannot delete a node that has children
             return "Parent of other nodes cannot be deleted."
@@ -542,31 +491,30 @@ function deleteNode (req,res) {
     function deleteNodeLoaded (data) {
 
         oldNode = data;
-        getView('in-domain',nodeId).
-            done(childrenLoaded).
-            fail(deleteFail);
+        storage.listInDomainNodes( nodeId )
+            .done( childrenLoaded )
+            .fail( deleteFail );
 
     }
 
     function childrenLoaded(data) {
 
-        children = data;
-        var error = authorizeDelete(getUserId(req));
+        var error = authorizeDelete( getUserId( req ), data );
 
-        if (error === undefined) {
+        if ( error === undefined ) {
 
             var options = {
-                url : getUrl(nodeId) + '?rev='+oldNode._rev,
+                url : getUrl( nodeId ) + '?rev=' + oldNode._rev,
                 type : 'DELETE'
             };
 
-            $.ajax( options ).
-                done(deleteOk).
-                fail(deleteFail);
+            $.ajax( options )
+                .done( deleteOk )
+                .fail( deleteFail );
 
         } else {
 
-            deleteFail({status:403,statusText:error});
+            deleteFail( { status : 403, statusText : error } );
 
         }
 
@@ -583,18 +531,18 @@ function putNode (req,res) {
     var nodes;
     var singleLevel = req.query['single-level'] !== undefined;
 
-    log('put','Start writing node '+nodeId);
-    var error = validateNodeForm(newNode,nodeId);
+    log( 'put', 'Start writing node ' + nodeId );
+    var error = validateNodeForm( newNode, nodeId );
 
     if (error) {
 
-        validationFail(error);
+        validationFail( error );
 
     } else {
 
-        log('put','Node validated ok');
-        queueNodeLoad (getUserId(req),nodeId,singleLevel,
-                        newNode.metadata.parents,true).
+        log( 'put', 'Node validated ok' );
+        queueNodeLoad (getUserId( req ), nodeId, singleLevel,
+                        newNode.metadata.parents, true).
             done(putDataLoaded).
             fail(putDataLoadFailed);
 

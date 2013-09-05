@@ -38,6 +38,9 @@ function getViewUrl (view) {
 // function getSingleLevelNode (userId,nodeId) {
 exports.getNode = function (userId,nodeId) {
 
+    /* TODO: remove authorization from here */
+    /* TODO: _prop-handling must be here */
+
     var options = {
         dataFilter: parseDBJSON,
         url : getUrl(nodeId),

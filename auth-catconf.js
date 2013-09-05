@@ -5,8 +5,9 @@ var catconf = require('./catconf');
 var atob = require('atob');
 
 var log = require('./logging').log;
-var getSingleLevelNode = catconf.getSingleLevelNode;
 var authorizeAgainstNode = catconf.authorizeAgainstNode;
+
+var storage = require('./' + conf.storageModule);
 
 /**
  * Catconf authentication middleware
@@ -49,9 +50,9 @@ function authentication(req, res, next) {
 
             } else {
 
-                getSingleLevelNode(user,user).
-                    done (nodeLoaded).
-                    fail (nodeLoadFailed);
+                storage.getNode(user,user)
+                    .done (nodeLoaded)
+                    .fail (nodeLoadFailed);
 
             }
 
