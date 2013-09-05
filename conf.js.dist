@@ -1,61 +1,71 @@
 var btoa = require("btoa");
-var db,catconfPort,testConfiguration;
 
+/* What to log on where to write it */
 exports.logging = {
     'logfile' : './catconf.log', // filename or undefined for no logging
     'logOnScreen' : true, // true or false
     'timestamp' : 'YYYY-MM-DD HH:mm:ss.SSS',
     'aspects': {
 
-        'auth' : false,
-        'delete' : false,
-        'view' : false,
-        'list' : false,
-        'get' : false,
-        'put' : false,
-        'queue' : false,
-        'construction' : false,
-        'request' : true,
-        'startup' : true,
-        'log' : true       // Log logging errors, do not disable this
+        'log' : true            // Log logging errors, do not disable this
+
+        'request' : true,       // log each request
+        'startup' : true,       // Startup greeting
+
+        'auth' : false,         // debug authorization
+        'delete' : false,       // debug deletion
+        'view' : false,         // debug couchdb-view code
+        'list' : false,         // debug node listing
+        'get' : false,          // debug get node
+        'put' : false,          // debug put node
+        'queue' : false,        // debug node load queuing
+        'construction' : false, // debug full node construction
 
     }
 };
 
-if (process.env.CATCONF_TEST !== undefined) {
+if (process.env.CATCONF_TEST === undefined) {
+
+    // These are for production server
+
+    exports.db = "catconf";     // CouchDB database for nodes
+    exports.catconfPort = 3000; // catconf API will listen on this port       
+    exports.testConfiguration = false;
+
+} else {
+
+    // These are used when running tests
+
     console.log('running with test configuration.');
-    db = "catconf_test";
-    catconfPort = 3001;
-    testConfiguration = true;
+
+    exports.db = "catconf_test";
+    exports.catconfPort = 3001;
+    exports.testConfiguration = true;
     exports.logging.aspects.request = false;
     exports.logging.aspects.startup = false;
-} else {
-    db = "catconf";
-    catconfPort = 3000;
-    testConfiguration = false;
+
 }
 
-exports.catconfUrl = 'http://localhost:' + catconfPort + '/';
-
+/* Settings to connect to couchdb */
 exports.protocol = "http";
 exports.host = "localhost";
 exports.port = "5984";
-exports.db = db;
-exports.catconfPort = catconfPort;
-exports.testConfiguration = testConfiguration;
 exports.adminUser = "admin";
 exports.adminPassword = "admin";
-exports.authorization = "Basic " + btoa(exports.adminUser + ':' +
-                                        exports.adminPassword);
+exports.authorization = "Basic " +
+                    btoa(exports.adminUser + ':' + exports.adminPassword);
 exports.couchUrl = exports.protocol + "://" + exports.adminUser +
                     ':' + exports.adminPassword +
                     '@' + exports.host + ":" + exports.port;
 
-exports.cookieSecret = 'secretsecret';
+// Some secret string used for cookie hashing
+exports.cookieSecret = 'CHANGE-THIS-AND-KEEP-SECRET';
 
+// Use auth-catconf for now.
 exports.authenticationModule = 'auth-catconf';
 //exports.authenticationModule = 'auth-crowd';
 
+// Configuration for crowd authentication
 exports.crowdConfig = {
     "crowd": {
         "base": "https://crowd.kiwi.fi/crowd/"
