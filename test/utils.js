@@ -22,9 +22,9 @@ var couchDesignJSON = fs.readFileSync('couch-design.json').
 
 exports.initializeTestDBBeforeTest = function (next) {
 
-    var dbUrl = conf.couchUrl+'/'+conf.db+'/';
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db+'/';
     var headers = {
-        'Authorization': conf.authorization,
+        'Authorization': conf.couchDB.authorization,
     };
 
     var retrys = initialRetrys; // Sometimes couch is too slow so just retry n times

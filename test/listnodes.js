@@ -17,8 +17,8 @@ describe('list', function() {
     it('returns proper error when couchdb fails wierdly',function (done) {
 
         // Just delete the whole database
-        var dbUrl = conf.couchUrl+'/'+conf.db+'/';
-        var headers = { 'Authorization': conf.authorization };
+        var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db+'/';
+        var headers = { 'Authorization': conf.couchDB.authorization };
         $.ajax({ url:dbUrl, type:'DELETE', headers:headers }).
             done(step2).
             fail(function (err) { done(utils.handleError(err)); } );

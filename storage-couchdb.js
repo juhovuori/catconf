@@ -20,93 +20,17 @@ function parseDBJSON (data) {
 
 function getUrl (nodeId) {
 
-    var suffix = conf.db;
+    var suffix = conf.couchDB.db;
 
     if (nodeId !== undefined) suffix += '/' + nodeId;
 
-    return conf.couchUrl + '/' + suffix;
+    return conf.couchDB.url + '/' + suffix;
 
 }
 
 function getViewUrl (view) {
 
     return getUrl('_design/catconf/_view/' + view);
-
-}
-
-exports.getNode = function (userId, nodeId, rawData) {
-
-    /* TODO: remove authorization from here */
-
-    var options = {
-        dataFilter: parseDBJSON,
-        url : getUrl(nodeId),
-    };
-    var def = $.Deferred();
-    log('storage','Requesting ' + options.url);
-    $.ajax( options ).done(dataReadDone).fail(dataReadFailed);
-
-    return def;
-
-    function dataReadFailed (err) {def.reject(err);}
-
-    function dataReadDone (node) {
-
-        log('storage','Node loaded ' + nodeId);
-
-        if (node.metadata.nodeId === undefined) {
-
-            node.metadata.nodeId = node._id;
-            log ('storage','Warning: no explicit nodeId in ' +
-                node.metadata.nodeId);
-
-        }
-
-        if (!rawData) {
-
-            for (var key in node) {
-
-                if ((typeof(key) == 'string') && (key[0] == '_')) {
-
-                    delete node[key];
-
-                }
-
-            }
-
-        }
-
-        if (node.metadata.authorization === undefined) {
-
-            def.resolve(node);
-
-        } else if (node.metadata.nodeId == userId) {
-            
-            def.resolve(node);
-
-        } else {
-            
-            def.reject({
-                status:403,
-                statusText: "Cannot read other users\' nodes"
-            });
-
-        }
-
-    }
-
-}
-
-exports.deleteNode = function (userId,nodeId) {
-
-    var options = {
-        url : getUrl(nodeId) + '?rev='+oldNode._rev,
-        type : 'DELETE'
-    };
-
-    $.ajax( options ).
-        done(deleteOk).
-        fail(deleteFail);
 
 }
 
@@ -159,6 +83,52 @@ function listNodes(view,params) {
 
 }
 
+exports.getNode = function (nodeId, rawData) {
+
+    var options = {
+        dataFilter: parseDBJSON,
+        url : getUrl(nodeId),
+    };
+    var def = $.Deferred();
+    log('storage','Requesting ' + options.url);
+    $.ajax( options ).done(dataReadDone).fail(dataReadFailed);
+
+    return def;
+
+    function dataReadFailed (err) {def.reject(err);}
+
+    function dataReadDone (node) {
+
+        log('storage','Node loaded ' + nodeId);
+
+        if (node.metadata.nodeId === undefined) {
+
+            node.metadata.nodeId = node._id;
+            log ('storage','Warning: no explicit nodeId in ' +
+                node.metadata.nodeId);
+
+        }
+
+        if (!rawData) {
+
+            for (var key in node) {
+
+                if ((typeof(key) == 'string') && (key[0] == '_')) {
+
+                    delete node[key];
+
+                }
+
+            }
+
+        }
+
+        def.resolve (node);
+
+    }
+
+}
+
 exports.listAllNodes = function () {
     
     return listNodes('all');
@@ -183,11 +153,11 @@ exports.listInDomainNodes = function (nodeId) {
 
 }
 
-exports.deleteNode = function (userId, nodeId) {
+exports.deleteNode = function (nodeId) {
 
     var def = $.Deferred();
 
-    exports.getNode ( userId, nodeId, true )
+    exports.getNode ( nodeId, true )
         .done(oldNodeLoaded)
         .fail(deleteFail);
 
@@ -221,11 +191,11 @@ exports.deleteNode = function (userId, nodeId) {
 
 }
 
-exports.putNode = function (userId, node) {
+exports.putNode = function (node) {
 
     var def = $.Deferred();
 
-    exports.getNode ( userId, node.metadata.nodeId, true )
+    exports.getNode ( node.metadata.nodeId, true )
         .done(setRevisionInfo)
         .fail(writeNewNode);
 

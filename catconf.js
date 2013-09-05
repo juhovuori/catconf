@@ -26,29 +26,6 @@ function getUserId(req) {
 
 }
 
-function myRequestMiddleware(req, res, next) {
-
-    log('request',"REQUEST: " + req.method + " " + req.path);
-    next();
-
-}
-
-function bodyParserErrorMiddleware(err, req, res, next) {
-
-    // This is here to handle invalid json in request body.
-
-    if (false) {
-
-        res.send(err.status,err.message);
-
-    } else {
-
-        next();
-
-    }
-
-}
-
 function authorizeAgainstNode(node,user,pass,compared) {
 
     var def = $.Deferred();
@@ -112,8 +89,11 @@ function authorizeAgainstNode(node,user,pass,compared) {
 
 }
 
+
+/**
+ * Merge two single-level nodes during inheritance
+ */
 function mergeWithSideEffects (merged,node) {
-    // Merge two single nodes
 
     log('construction','Keys to merge: ' +
         JSON.stringify(Object.keys(node)));
@@ -230,6 +210,19 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
         function singleLoadDone(data) {
 
+            if ( (typeof data.metadata.authorization == 'object') &&
+                 (data.metadata.nodeId !== userId) ) {
+                
+                wholeQueueDef.reject({
+                    statusText: 'About to read unallowed node.',
+                    status:403
+                });
+
+                return;
+
+            }
+
+            
             if (parentsOverRide !== undefined) {
 
                 data.metadata.parents = parentsOverRide;
@@ -308,7 +301,7 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
         if (loadBuffer[nodeId] !== undefined) return;
 
-        var singleLoadDef = storage.getNode(userId,nodeId);
+        var singleLoadDef = storage.getNode(nodeId);
         defBuffer[nodeId] = singleLoadDef;
         loadBuffer[nodeId] = {};
 
@@ -402,7 +395,7 @@ function deleteNode (req,res) {
 
     log ('delete','Attempting to delete ' + nodeId);
 
-    storage.getNode ( getUserId(req), nodeId ).
+    storage.getNode ( nodeId ).
         done(deleteNodeLoaded).
         fail(deleteFail);
 
@@ -425,7 +418,7 @@ function deleteNode (req,res) {
 
         } else {
 
-            storage.deleteNode( getUserId(req), nodeId )
+            storage.deleteNode( nodeId )
                 .done( deleteOk )
                 .fail( deleteFail );
 
@@ -741,7 +734,7 @@ function putNode (req,res) {
 
         log('put','Finally writing node "' + nodeId + '"');
 
-        storage.putNode(getUserId(req),singleLevelNode)
+        storage.putNode(singleLevelNode)
             .done( putOk )
             .fail( putFail );
 
@@ -915,9 +908,33 @@ function CORS(req, res, next) {
     }
 }
 
+function myRequestMiddleware(req, res, next) {
+
+    log('request',"REQUEST: " + req.method + " " + req.path);
+    next();
+
+}
+
+function bodyParserErrorMiddleware(err, req, res, next) {
+
+    // This is here to handle invalid json in request body.
+
+    if (false) {
+
+        res.send(err.status,err.message);
+
+    } else {
+
+        next();
+
+    }
+
+}
 
 
-/** Boot server.
+
+/**
+ * Boot server.
  * First setup express middleware, then setup routing and finally
  * start listening to a port
  */

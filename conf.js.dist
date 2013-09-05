@@ -12,14 +12,14 @@ exports.logging = {
         'request' : true,       // log each request
         'startup' : true,       // Startup greeting
 
-        'auth' : false,         // debug authorization
+        'auth' : false,         // debug authorization module
         'delete' : false,       // debug deletion
-        'view' : false,         // debug couchdb-view code
         'list' : false,         // debug node listing
         'get' : false,          // debug get node
         'put' : false,          // debug put node
         'queue' : false,        // debug node load queuing
-        'construction' : false  // debug full node construction
+        'construction' : false, // debug full node construction
+        'storage' : false       // debug storage module
 
     }
 };
@@ -48,28 +48,30 @@ if (process.env.CATCONF_TEST === undefined) {
 
 exports.catconfUrl = 'http://localhost:' + exports.catconfPort + '/';
 
-/* Settings to connect to couchdb */
-exports.protocol = "http";
-exports.host = "localhost";
-exports.port = "5984";
-exports.adminUser = "admin";
-exports.adminPassword = "admin";
-exports.authorization = "Basic " +
-                    btoa(exports.adminUser + ':' + exports.adminPassword);
-exports.couchUrl = exports.protocol + "://" + exports.adminUser +
-                    ':' + exports.adminPassword +
-                    '@' + exports.host + ":" + exports.port;
-
 // Some secret string used for cookie hashing
 exports.cookieSecret = 'CHANGE-THIS-AND-KEEP-SECRET';
-
-// Use auth-catconf for now.
-exports.authenticationModule = 'auth-catconf';
-//exports.authenticationModule = 'auth-crowd';
 
 // Use storage-couchdb for now.
 exports.storageModule = 'storage-couchdb';
 //exports.storageModule = 'storage-sqlite';
+
+/* Settings to connect to couchdb */
+exports.couchDB = {
+    protocol : "http",
+    host : "localhost",
+    port : "5984",
+    user : "admin",
+    password : "admin",
+}
+exports.couchDB.authorization = "Basic " +
+    btoa(exports.couchDB.user + ':' + exports.couchDB.password);
+exports.couchDB.url = exports.couchDB.protocol + "://" + exports.couchDB.user +
+                ':' + exports.couchDB.password +
+                '@' + exports.couchDB.host + ":" + exports.couchDB.port
+
+// Use auth-catconf for now.
+exports.authenticationModule = 'auth-catconf';
+//exports.authenticationModule = 'auth-crowd';
 
 // Configuration for crowd authentication
 exports.crowdConfig = {
