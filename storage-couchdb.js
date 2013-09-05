@@ -34,8 +34,6 @@ function getViewUrl (view) {
 
 }
 
-
-// function getSingleLevelNode (userId,nodeId) {
 exports.getNode = function (userId,nodeId) {
 
     /* TODO: remove authorization from here */
@@ -160,377 +158,75 @@ exports.listInDomainNodes = function (nodeId) {
 
 }
 
+exports.deleteNode = function (userId, nodeId) {
 
-function deleteNode (req,res) {
+    var def = $.Deferred();
 
-    var nodeId = req.params.id;
-    var oldNode;
-    var children = [];
+    exports.getNode ( userId, nodeId )
+        .done(oldNodeLoaded)
+        .fail(deleteFail);
 
-    log ('delete','Attempting to delete ' + nodeId);
-    getSingleLevelNode ( getUserId(req), nodeId ).
-        done(deleteNodeLoaded).
-        fail(deleteFail);
+    return def;
+
+    function oldNodeLoaded (oldNode) {
+
+        var options = {
+            url : getUrl( oldNode.metadata.nodeId ) + '?rev=' + oldNode._rev,
+            type : 'DELETE'
+        };
+
+        $.ajax( options )
+            .done( deleteOk )
+            .fail( deleteFail );
+
+    }
+
+    function deleteOk (data) {
+
+        def.resolve(data);
+
+    }
 
     function deleteFail (err) {
-
-        log('delete',JSON.stringify(err));
-        log('delete', 'Delete failed ' + err.status||500 + ' ' + err.statusText);
-        res.send(err.statusText+'\n',err.status||500);
-
-    };
-
-    function deleteOk (data) { res.send(data); }
-
-    function authorizeDelete (userId) {
-
-        if (typeof oldNode != 'object') return "Invalid node";
-
-        if (typeof oldNode.metadata != 'object') return "Invalid node";
-
-        if (typeof oldNode.metadata.authorization == 'object') {
-
-            // Users can only delete their own nodes.
-
-            if (oldNode.metadata.nodeId != userId) {
-
-                return "Cannot delete other users\' nodes";
-
-            }
-
-        } else if (oldNode.metadata.nodeAdmins instanceof Array) {
-
-            // Only admins can delete domain nodes
-            if (oldNode.metadata.nodeAdmins.indexOf(req.user) == -1) {
-
-                return userId + " is not a node admin of node " +
-                        oldNode.metadata.nodeId;
-            }
-
-        }
-
-        if (children.rows.length != 0) {
-
-            // Cannot delete a node that has children
-            return "Parent of other nodes cannot be deleted."
-
-        }
-
-        // All checks passed
-        return undefined;
+        
+        def.reject(err);
 
     }
 
-    function deleteNodeLoaded (data) {
-
-        oldNode = data;
-        getView('in-domain',nodeId).
-            done(childrenLoaded).
-            fail(deleteFail);
-
-    }
-
-    function childrenLoaded(data) {
-
-        children = data;
-        var error = authorizeDelete(getUserId(req));
-
-        if (error === undefined) {
-
-            var options = {
-                url : getUrl(nodeId) + '?rev='+oldNode._rev,
-                type : 'DELETE'
-            };
-
-            $.ajax( options ).
-                done(deleteOk).
-                fail(deleteFail);
-
-        } else {
-
-            deleteFail({status:403,statusText:error});
-
-        }
-
-    }
 
 }
 
-function putNode (req,res) {
+exports.putNode = function (userId, node) {
 
-    // TODO: Implement put queue to get rid of race conditions
+    var def = $.Deferred();
 
-    var newNode = req.body;
-    var nodeId = req.params.id;
-    var nodes;
-    var singleLevel = req.query['single-level'] !== undefined;
+    exports.getNode ( userId, node.metadata.nodeId )
+        .done(setRevisionInfo)
+        .fail(writeNewNode);
 
-    log('put','Start writing node '+nodeId);
-    var error = validateNodeForm(newNode,nodeId);
+    return def;
 
-    if (error) {
 
-        validationFail(error);
+    function setRevisionInfo (oldNode) {
 
-    } else {
-
-        log('put','Node validated ok');
-        queueNodeLoad (getUserId(req),nodeId,singleLevel,
-                        newNode.metadata.parents,true).
-            done(putDataLoaded).
-            fail(putDataLoadFailed);
+        node._rev = oldNode._rev;
+        writeNewNode();
 
     }
 
-    function recursiveUnmergeWithSideEffects (node,unmergable) {
-
-        for (var key in unmergable) {
-
-            if ((typeof(unmergable[key]) == 'object') &&
-                (typeof(node[key]) == 'object')) {
-
-                recursiveUnmergeWithSideEffects(node[key],unmergable[key]);
-
-            } else if (node[key] == unmergable[key]) {
-
-                node[key] = undefined;
-
-            }
-
-        }
-
-    }
-
-    function putFail (err) {
-
-        log('put', 'Put failed: ' + err.statusText + '(' +
-            (err.status||500) + ')');
-        log('put',JSON.stringify(err));
-        res.send(err.statusText+ '\n',err.status||500);
-
-    }
-
-    function validationFail (msg) { putFail({statusText: msg, status:400}); }
-
-    function putOk (data) {
-
-        log('put','Node written succesfully');
-        res.send(data);
-
-    }
-
-    function validateNodeForm (node,nodeId) {
-
-        var metadata = node.metadata;
-
-        if (typeof metadata !== 'object') {
-
-            return 'Node must have metadata object.';
-
-        }
-
-        if (typeof nodeId !== 'string') {
-
-            return 'Node id must be a string.';
-
-        } 
-
-        if (nodeId != metadata.nodeId) {
-
-            return 'Node id must match nodeId property in metadata object.';
-
-        }
-
-        for (var k in node) {
-
-            if (typeof k !== 'string') {
-
-                return 'Invalid property ' + k;
-
-            } else if (k[0] == '_') {
-
-                return 'Property names may not begin with _';
-
-            }
-
-        }
-
-        if (metadata.nodeAdmins !== undefined) {
-
-            if (!(metadata.nodeAdmins instanceof Array)) {
-
-                return 'nodeAdmins must be an array.';
-
-            }
-
-        };
-
-        if (metadata.authorization !== undefined) {
-
-            if (typeof metadata.authorization != 'object') {
-
-                return 'invalid authorization property';
-
-            } else if (metadata.authorization.type === 'bcrypt') {
-
-                if (typeof metadata.authorization.crypted != 'string') {
-
-                    return 'invalid authorization property';
-
-                }
-
-            }
-
-            else if (metadata.authorization.type === 'password') {
-
-                if (typeof metadata.authorization.password !== 'string') {
-
-                    return 'invalid password property.';
-
-                }
-
-            } else {
-
-                return 'invalid password type';
-
-            }
-
-        }
-
-    }
-
-    function isThereALoopOrMissingParent(currentNodeId,nodesSoFar) {
-
-        // Recursively check if there are loops
-
-        if (nodes[currentNodeId] === undefined) {
-
-                return "Parent " + currentNodeId + " does not exist.";
-                
-        }
-
-        var parents = nodes[currentNodeId].metadata.parents;
-        for (var i in parents) {
-
-            var parent = parents[i];
-
-            // If this node would create a loop, stop here
-            if (nodesSoFar.indexOf(parent) != -1) {
-                
-                return "This would create an inheritance loop.";
-                
-            }
-
-            // Cannot just push because of multiple inheritance
-            var newNodesSoFar = nodesSoFar.concat([parent]);
-
-            var parentError = isThereALoopOrMissingParent(parent,newNodesSoFar);
-
-            if (parentError) return parentError;
-
-        }
-
-        // None of the parent lines created a loop, nice.
-        return null;
-    }
-
-    function validateAndTransform () {
-
-        var oldNode = nodes[nodeId];
-
-        if (oldNode !== undefined) {
-
-            newNode._rev = nodes[nodeId]._rev;
-
-        }
-
-        nodes[nodeId] = newNode; // loop detection needs this
-
-        var error = isThereALoopOrMissingParent(nodeId,[]);
-        if (error) {
-
-            validationFail(error);
-
-        } else {
-
-            // construct a version of node with non-inherited properties only
-
-            var stubNode = { metadata: {parents : newNode.parents }};
-            nodes[nodeId] = stubNode;
-            var unmergable = constructWithSideEffects(nodeId,nodes,{});
-
-            // preserve special properties
-            delete unmergable.metadata;
-
-            recursiveUnmergeWithSideEffects(newNode, unmergable);
-
-            // transform authorization and write
-
-            var auth = newNode.metadata.authorization;
-
-            if ((typeof auth == 'object') && (auth.type == 'password')) {
-
-                transformAuthorizationAndWrite(newNode);
-
-            } else {
-
-                log('put','Not transforming authorization');
-                writeFinally(newNode);
-
-            }
-
-        }
-
-    }
-
-    function transformAuthorizationAndWrite(singleLevelNode) {
-
-        log('put','Start transforming node authorization');
-        var password = singleLevelNode.metadata.authorization.password;
-
-        bcrypt.genSalt(10, function(err, salt) {
-
-            if (err) {
-
-                validationFail('Unable to generate password salt.');
-
-            } else {
-
-                bcrypt.hash(password, salt, function(err, crypted) {
-
-                    if (err) {
-
-                        validationFail('Unable to crypt password.');
-
-                    } else {
-
-                        var auth = { type : 'bcrypt', crypted : crypted }
-                        singleLevelNode.metadata.authorization = auth;
-                        log('put','Transformed authorization to ' + JSON.stringify(auth));
-                        writeFinally(singleLevelNode);
-
-                    }
-
-                });
-
-            }
-
-        });
-    }
-
-    function writeFinally (singleLevelNode) {
+    function writeNewNode () {
 
         var options = {
-            url : getUrl(nodeId),
+            url : getUrl(node.metadata.nodeId),
             contentType: "application/json",
-            data: JSON.stringify(singleLevelNode),
+            data: JSON.stringify(node),
             dataFilter: parseDBJSON,
             processData: false,
             type : 'PUT'
         };
 
-        log('put','Finally writing node "' + nodeId + '"');
-        log('put',options.data);
+        log('storage','Start writing node.');
+        log('storage',options.data);
 
         $.ajax( options ).
             done( putOk ).
@@ -538,79 +234,19 @@ function putNode (req,res) {
 
     }
 
-    function putDataLoaded (loadedNodes) {
+    function putFail (err) {
 
-        nodes = loadedNodes;
-        authorizePut();
-
-    }
-
-    function putDataLoadFailed (err) {
-
-        if (err.status == 404) {
-
-            // the node didn't exist
-            nodes = {};
-            authorizePut();
-
-        } else putFail(err);
+        log('storage',JSON.stringify(err));
+        def.reject(err);
 
     }
 
-    function authorizePut() {
+    function putOk (data) {
 
-
-        var userId = getUserId(req);
-        var oldNode = nodes[nodeId];
-
-        if (oldNode !== undefined) {
-
-            // There was an earlier node here.
-            log('put','Authorizing rewrite of existing node.');
-
-            if (oldNode.metadata.authorization !== undefined) {
-
-                if (userId == oldNode.metadata.nodeId) {
-
-                    validateAndTransform();
-
-                } else {
-                    
-                    putFail( {status:403, statusText:
-                        'User nodes can only be edited by respective users'});
-
-                }
-
-            } else if (oldNode.metadata.nodeAdmins) {
-
-                if (oldNode.metadata.nodeAdmins.indexOf(userId) != -1) {
-
-                    validateAndTransform();
-
-                } else {
-
-                    putFail({status:403,statusText:'Not a node admin'});
-
-                }
-
-            } else {
-
-                putFail({
-                    status:403,
-                    statusText:'Cannot figure out node authorization'
-                });
-
-            }
-
-        } else {
-
-            log('put','Authorizing creation of a new node');
-            validateAndTransform();
-
-        }
+        log('storage','Node written succesfully');
+        def.resolve(data);
 
     }
 
 }
-
 

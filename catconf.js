@@ -15,14 +15,6 @@ var package_json = require('./package.json');
 var authentication = require('./'+conf.authenticationModule);
 var storage = require('./' + conf.storageModule);
 
-function parseDBJSON (data) {
-
-    // Used as dataFilter to couch request
-    // TODO: Error checking ? In theory everything coming out of couchdb
-    // should be valid
-    return JSON.parse(data);
-
-}
 
 /**
  * Return nodeId of the user performing
@@ -333,16 +325,6 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
 }
 
-function getUrl (nodeId) {
-
-    var suffix = conf.db;
-
-    if (nodeId !== undefined) suffix += '/' + nodeId;
-
-    return conf.couchUrl + '/' + suffix;
-
-}
-
 function listNodes (req,res) {
 
 
@@ -439,15 +421,32 @@ function deleteNode (req,res) {
         done(deleteNodeLoaded).
         fail(deleteFail);
 
-    function deleteFail (err) {
+    function deleteNodeLoaded (data) {
 
-        log('delete',JSON.stringify(err));
-        log('delete', 'Delete failed ' + err.status||500 + ' ' + err.statusText);
-        res.send(err.statusText+'\n',err.status||500);
+        oldNode = data;
+        storage.listInDomainNodes( nodeId )
+            .done( childrenLoaded )
+            .fail( deleteFail );
 
-    };
+    }
 
-    function deleteOk (data) { res.send(data); }
+    function childrenLoaded(data) {
+
+        var error = authorizeDelete( getUserId( req ), data );
+
+        if ( error !== undefined ) {
+
+            deleteFail( { status : 403, statusText : error } );
+
+        } else {
+
+            storage.deleteNode( getUserId(req), nodeId )
+                .done( deleteOk )
+                .fail( deleteFail );
+
+        }
+
+    }
 
     function authorizeDelete (userId,children) {
 
@@ -483,42 +482,17 @@ function deleteNode (req,res) {
 
         }
 
-        // All checks passed
-        return undefined;
-
     }
 
-    function deleteNodeLoaded (data) {
+    function deleteFail (err) {
 
-        oldNode = data;
-        storage.listInDomainNodes( nodeId )
-            .done( childrenLoaded )
-            .fail( deleteFail );
+        log('delete',JSON.stringify(err));
+        log('delete', 'Delete failed ' + err.status||500 + ' ' + err.statusText);
+        res.send(err.statusText+'\n',err.status||500);
 
-    }
+    };
 
-    function childrenLoaded(data) {
-
-        var error = authorizeDelete( getUserId( req ), data );
-
-        if ( error === undefined ) {
-
-            var options = {
-                url : getUrl( nodeId ) + '?rev=' + oldNode._rev,
-                type : 'DELETE'
-            };
-
-            $.ajax( options )
-                .done( deleteOk )
-                .fail( deleteFail );
-
-        } else {
-
-            deleteFail( { status : 403, statusText : error } );
-
-        }
-
-    }
+    function deleteOk (data) { res.send(data); }
 
 }
 
@@ -704,12 +678,6 @@ function putNode (req,res) {
 
         var oldNode = nodes[nodeId];
 
-        if (oldNode !== undefined) {
-
-            newNode._rev = nodes[nodeId]._rev;
-
-        }
-
         nodes[nodeId] = newNode; // loop detection needs this
 
         var error = isThereALoopOrMissingParent(nodeId,[]);
@@ -786,21 +754,11 @@ function putNode (req,res) {
 
     function writeFinally (singleLevelNode) {
 
-        var options = {
-            url : getUrl(nodeId),
-            contentType: "application/json",
-            data: JSON.stringify(singleLevelNode),
-            dataFilter: parseDBJSON,
-            processData: false,
-            type : 'PUT'
-        };
-
         log('put','Finally writing node "' + nodeId + '"');
-        log('put',options.data);
 
-        $.ajax( options ).
-            done( putOk ).
-            fail( putFail );
+        storage.putNode(getUserId(req),singleLevelNode)
+            .done( putOk )
+            .fail( putFail );
 
     }
 
