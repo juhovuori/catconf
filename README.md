@@ -120,117 +120,155 @@ the single-level node itself.
 Parent-nodes may contain parents of their own. Inheritance loops are
 not allowed.
 
+Arrays are considered objects and inherit in the same way as objects.
+Array indexes are interpreted as property names, the way javascript does it.
+Array inheritance is sometimes not so intuitively appealing, so use
+arrays with care or not at all.
 
-Tietorakenne
-------------
+A node cannot _remove_ properties of it's parents. It can however set
+value of a property `null` and then it is up to the application to
+interpret what this means. Once defined, property names however will
+stay until the bottom of the inheritance chain.
 
-Konfiguraatiotietokanta koostuu nodeista. Kukin node on JSON-serialisoituva olio, joka sisältää vapaavalintaisia propertyjä, sekä konfiguraatiojärjestelmän oman metadata-propertyn \_. Metadata-property ei periydy.
+Construction of a full node is done at read time. Thus, modifying a parent
+node might cause full child nodes to change as well.
+
+When writing a node, the inheritance process is reversed. The properties
+that would be inherited anyway are removed from the single-level node being
+written.
+
+
+Nodes
+-----
+
+Each node in configuration database is a JSON-serializable document that
+contain arbitrary properties and one special property `metadata`.
+Inheritance does not apply to `metadata`.
+Property names may not begin with underscore.
+
+`metadata` is an object that has following structure:
 
     node.metadata = {
-        nodeId: "" // Tämä on sama kuin käyttäjätunnus tai URL-osoitteen pala.
-        authorization: {type:"bcrypt", crypted:"xx..."} // Jos tämä != undefined, tämä on käyttäjänode. Kirjoitettaessa voi olla myös {type:"password", password:"cleartextpassword"}
-        parents: [] // Array of nodeIds
-        nodeAdmins: [] // Array of userIds who can write
-        nodeCreator: "" // userId of node creator
-        nodeCtime: 0 // unix time of creation
+        "nodeId": "" // ID. This is guaranteed to be unique.
+        "authorization": { } // Controls who can read node. Read below for more.
+        "parents": [ ] // Parents of the node. Array of userIds.
+        "nodeAdmins": [] // Array of nodeIds who can change this node. See below.
     }
 
-Periytyminen
-------------
 
-Koko node rakennetaan seuraavasti:
+Authorization datastructures and API
+------------------------------------
 
-    function construct_node (node_id) {
-        var single_level_node = get_single_level_node(node_id);
-        var merged_parents = _.reduce(single_level_node.parents, function (node, parent_id) {
-            var parent = construct_node(parent_id);
-            return merge_properties(node, parent);
-        },{});
-        return merge_properties(merged_parents,single_level_node);
+Normally nodes can be read, written and created by anyone, including
+unauthenticated users.
+
+If a node contains `metadata.authorization` property, it is an _user node_.
+Access to it is restricted. Authorization property is.
+
+    node.metadata.authorization = {
+        "type" : "bcrypt",
+        "crypted" : "bcrypted-pasword-here"
     }
 
-Nodet tallennetaan single-level nodeina ja yhdistetään lennosta luettaessa koko nodeiksi.
+To read or write an user node, request must either
 
-Propertyt yhdistetään niin, että jokainen lapsen lehtiproperty kirjoitetaan vanhemman ko. lehtipropertyjen päälle. Puuttuvia propertyjä varten luodaan uudet propertyt. Vanhempien propertyt eivät voi poistua.
+    1. contain HTTP Authorization header with value <nodeId>:<password> or
+    2. contain a cookie that identifies the request with that node. See
+       below how sessions are created.
 
-Myös Arrayt periytyvät näin. Noudatellaan javascriptin array-tulkintaa: Array on olio siinä missä muutkin, arrayn propertyt ovat sen indeksit 0, 1, 2, ... Arrayn käyttö on mahdollista, mutta tsekattava, että periytymisen semantiikka on se, mitä halutaan.
+If a node contains `metadata.nodeAdmins` property, writing it is restricted.
+`nodeAdmins` is an array of `nodeId`s. Each request to write to that node
+must authorize to corresponding nodes by HTTP Authorization header or
+a session cookie.
 
-
-Termejä
--------
-
-* *nodeId* String. javuori, petuomin, domain\_helka, jne.
-
-* *user-node* Node, joka sisältää käyttäjän oman konfiguraation.
-* *global-node* Node, jolla ei ole parentteja. Luettelointiohjelma-spesifi termi.
-* *domain-node* User-noden ja global-noden välissä olevat nodet. Tämä on luettelointiohjelma-spesifi termi.
-* *node* "Konfiguraatiotietue". JSON-serialisoituva data. Ilman erillistä tarkennusta node tarkoittaa aina koko nodea. Kts koko node ja single-level node.
-* *single-level node* Noden oma data, josta parenteilta periytetyt propertyt on suodatettu pois.
-* *koko node* Node, mukaanlukien noden oma data ja parenteilta periytetyt propertyt. Normaalisti sanotaan vain node.
-
-* *property* noden property.
-* *authenticatedUserId* Kirjautuneen käyttäjän userId. (=käyttäjän noden node\_id)
+Currently, there is no concept of _admin_- or _root_-users. Modifications
+requiring such access must be done to the underlying database manually.
 
 API
-===
+---
 
-Kaikki requestit https:n yli. Kaikki requestit sisältävät Authorization-headerin, josta voi päätellä käyttäjän user\_id:n (Onko tämä pakko?)
+Access to catconf is done by HTTP-requests. The API follows RESTful principles.
+Below is a description of allowed requests.
 
-Alla olevien autentikointispeksien lisäksi on lista admin-käyttäjiä, joille kaikki requestit passaavat autentikoinnin. Validointi tehdään myös admin-requesteille.
-
- 
 
 **GET /node**
 
-  - Palauttaa kaikki nodeidt:
-    - `{results:["juho","pekka",...]}`
-  - Query:
-    - domains palauttaa kaikki domain-nodet
-    - in-domain=palauttaa kaikki nodet, joiden parentteihin(...) kuuluu
-    - users palauttaa kaikki user-nodet
+Returns all nodeIds.  `{results:["juho","pekka",...]}`
 
-**GET /node/**
+May contain query.
 
-  - Palauttaa noden.
-  - Autentikointi:
-   
-    - OK, jos oma node (nodeId = authenticatedUserId).
-    - OK, jos node.authorization == undefined
-    - REJECT muuten.
-  - Query:
-   
-    - raw => palauttaa myös \_-alkuiset couchdb:n sisäiset propertyt.
-    - single-level => Palauttaa periytymättömän noden.
+- `?users` returns only user-nodes.
+- `?domains` returns only non-user-nodes.
+- `?in-domain=<nodeId>` return only nodes that directly inherit
+    from specified node.
 
-   
 
-**PUT /node/**
+**GET /node/<nodeId>**
 
-  - Autentikointi:
-   
-    - REJECT, jos nodella on sellainen parent, jonka metadata.authorization != undefined. (Muuten password valuu)
-    - OK, jos nodea ei ole. (=kaikki (myös autentikoitumattomat) voivat luoda uuden noden, mm. uuden käyttäjän)
-    - OK, jos (authenticatedUser.nodeId ∈ old\_node.node\_admins) and (authenticatedUser.nodeId ∈ newNode.nodeAdmins).
-    - REJECT muuten.
-    - Eli käyttäjä ei välttämättä voi editoida omaa nodea esimerkiksi.
-  - Validointi
-   
-    - REJECT, jos nodeId -propertyn != URL:n nodeId.
-    - REJECT, jos konfiguraatiotietokannassa on muita nodeja, joiden parent tämä node on, ja uudelle nodelle tulisi .authorization != undefined.
-    - REJECT, jos node.parents-ketju sisältää loopin.
-    - REJECT, jos noden data rikkoo peritymissääntöjä. Täytyy siis olla niin, että välittömästi tämän PUT:n jälkeen suoritettava GET palauttaa täsmälleen saman noden kuin mitä PUT sinne kirjoittaa. 
-    - OK muuten
+Returns the specified node.
 
-**DELETE /node/**
+May contain query.
 
-  - Autentikointi:
-   
-    - OK, jos authenticatedUser.node\_id ∈ nodeAdmins.
-    - REJECT muuten
-  - Validointi:
-   
-    - REJECT, jos tietokannasta löytyy node jonka parent poistettava node on.
-    - OK muuten
+- `?raw` returns internal \_-prefixed properties also.
+- `?single-level` returns single-level instead of full node 
+
+Authorization:
+
+1. OK, if `node.metadata.nodeId == session.nodeId`
+2. OK, if `node.metadata.authorization === undefined`
+3. REJECT otherwise
+
+
+**PUT /node/<nodeId>**
+
+Write the specified node. Reverse inheritance is performed before actually
+writing data.
+
+Authorization:
+
+1. REJECT, if new node would contain a parent with
+  `parent.metadata.authorization !== undefined`
+2. OK, if node does not exits.
+3. OK, if `session.nodeId ∈ oldNode.metadata.nodeAdmins`
+4. REJECT otherwise.
+
+
+**DELETE /node/<nodeId>**
+
+Deletes the specified node. If some other node inherits from this node, it
+cannot be deleted.
+
+Authorization:
+
+1. OK, if `session.nodeId == node.metadata.nodeId`
+2. OK, if `session.nodeId ∈ node.metadata.nodeAdmins`
+3. REJECT otherwise
+
+
+**GET /session**
+
+Returns nodeId the current session is associated with. Also, this request
+refreshes session expiration time and returns next proposed session refresh
+time.
+
+
+**PUT /session**
+
+Creates a session and returns a cookie that identifies it. Login.
+
+This request must contain `Authorization` header that identifies the node
+this session will be associated with. 
+
+
+**DELETE /session**
+
+Destroys current session. Logout.
+
 
  
+Crowd-integration
+-----------------
+
+There is an experimental crowd authentication integration, but it is
+known to contain problems currently.
 

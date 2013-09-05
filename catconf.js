@@ -501,6 +501,11 @@ function deleteNode (req,res) {
     var oldNode;
     var children = [];
 
+    log ('delete','Attempting to delete ' + nodeId);
+    getSingleLevelNode ( getUserId(req), nodeId ).
+        done(deleteNodeLoaded).
+        fail(deleteFail);
+
     function deleteFail (err) {
 
         log('delete',JSON.stringify(err));
@@ -549,12 +554,14 @@ function deleteNode (req,res) {
         return undefined;
 
     }
-    function deleteNodeLoaded (data) {
-        oldNode = data;
 
+    function deleteNodeLoaded (data) {
+
+        oldNode = data;
         getView('in-domain',nodeId).
             done(childrenLoaded).
             fail(deleteFail);
+
     }
 
     function childrenLoaded(data) {
@@ -580,11 +587,6 @@ function deleteNode (req,res) {
         }
 
     }
-
-    log ('delete','Attempting to delete ' + nodeId);
-    getSingleLevelNode ( getUserId(req), nodeId ).
-        done(deleteNodeLoaded).
-        fail(deleteFail);
 
 }
 
@@ -957,7 +959,7 @@ function getSession (req,res) {
 
     } else {
 
-        res.send(404,'No session.\n');
+        res.send(404,{'user':null,'message':'No session.'});
 
     }
 
