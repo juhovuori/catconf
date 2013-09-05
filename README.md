@@ -265,10 +265,40 @@ this session will be associated with.
 Destroys current session. Logout.
 
 
- 
+Installation, configuration and development notes
+-------------------------------------------------
+
+Check quickstart for installation instructions. Currently there is no
+rc.d-scripts or the like included. Starting servers must be handled
+by system administrators themselves. Also, installation by default places
+all files in catconf directory, that may reside anywhere on system.
+Neither installation nor running catconf requires root privileges.
+
+`conf.js` contains all configuration. It is self documenting.
+
+Use `nodemon` for development. Start server with
+`node_modules/nodemon/nodemon.js catconf.js`.
+
+Use `make test` to run tests. This starts up a new catconf server and creates
+a test database for it. Sometimes it is nice to have test server running
+continuously and perform only some tests on it. Do this:
+
+1. `CATCONF_TEST=1 node catconf.js` # starts server in test configuration.
+2. `CATCONF_TEST=1 mocha test/getnode.js` runs test in that particular
+    file. Environment variable CATCONF_TEST must be set when running
+    tests so that all components know to use test configuration and not
+    production configuration.
+
+`make coverage` creates test coverage reports using istanbul.js. Coverage
+reports will be created in `coverage`-directory.
+
+`make jsdoc` creates jsdoc documentation in `jsdoc` directory.
+
+
 Crowd-integration
 -----------------
 
 There is an experimental crowd authentication integration, but it is
 known to contain problems currently.
+
 
