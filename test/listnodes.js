@@ -76,7 +76,7 @@ function listOk (done, method, expected) {
 
     function checkResults(data) {
 
-        data = data.sort();
+        data = data.results.sort();
         expected = expected.sort();
 
         if (data.length != expected.length) return myError();

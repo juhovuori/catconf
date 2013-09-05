@@ -14,11 +14,8 @@ var log = require('./logging').log;
 
 var package_json = require('./package.json');
 var authentication = require('./'+conf.authenticationModule);
+var storage = require('./' + conf.storageModule);
 
-/**
- * Parse and validate data read from backend.
- * @param {string} data Must be a valid JSON object
- */
 function parseDBJSON (data) {
 
     // Used as dataFilter to couch request
@@ -379,20 +376,31 @@ function getViewUrl (view) {
 
 function listNodes (req,res) {
 
-    function listLoaded(ob) {
+
+    if (req.query['domains'] !== undefined) {
+
+        storage.listDomainNodes().done(listOk).fail(listFail);
+
+    } else if (req.query['users'] !== undefined) {
+
+        storage.listUserNodes().done(listOk).fail(listFail);
+
+    } else if (req.query['in-domain']) {
+
+        storage.listInDomainNodes(req.query['in-domain'])
+            .done(listOk).fail(listFail);
+
+    } else {
+
+        storage.listAllNodes().done(listOk).fail(listFail);
+
+    }
+
+
+    function listOk(array) {
 
         log('list','List loaded');
-
-        if ((ob instanceof Object) && (ob.rows instanceof Array)) {
-
-            var response = ob.rows.map(function (x) {return x.id;});
-            res.send(response);
-
-        } else {
-
-            res.send({},500);
-
-        }
+        res.send({"results":array});
 
     }
     
@@ -403,30 +411,6 @@ function listNodes (req,res) {
 
     }
 
-    var params = undefined
-
-    if (req.query['domains'] !== undefined) {
-
-        view = 'domains';
-
-    } else if (req.query['users'] !== undefined) {
-
-        view = 'users';
-
-    } else if (req.query['in-domain']) {
-
-        view = 'in-domain';
-        params = encodeURIComponent(req.query['in-domain']);
-
-    } else {
-
-        view = 'all';
-
-    }
-
-    getView(view,params).
-        done(listLoaded).
-        fail(listFail);
 }
 
 function getView(view,params) {
@@ -953,8 +937,10 @@ function putNode (req,res) {
  */
 function getSession (req,res) {
 
+    // TODO: write to session storage
     if (req.user) {
 
+        // BUG: does not actually refresh session
         res.send(200,{'user':req.user,'refresh':3600000});
 
     } else {
@@ -971,6 +957,7 @@ function getSession (req,res) {
  */
 function deleteSession (req,res) {
 
+    // TODO: write to session storage
     if (req.user) {
 
         req.session.destroy(
@@ -990,6 +977,7 @@ function deleteSession (req,res) {
  */
 function createSession (req,res) {
 
+    // TODO: write to session storage
     if (req.user) {
 
         // TODO: session timeout?

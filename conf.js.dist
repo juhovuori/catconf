@@ -67,6 +67,10 @@ exports.cookieSecret = 'CHANGE-THIS-AND-KEEP-SECRET';
 exports.authenticationModule = 'auth-catconf';
 //exports.authenticationModule = 'auth-crowd';
 
+// Use storage-couchdb for now.
+exports.storageModule = 'storage-couchdb';
+//exports.storageModule = 'storage-sqlite';
+
 // Configuration for crowd authentication
 exports.crowdConfig = {
     "crowd": {
