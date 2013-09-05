@@ -7,7 +7,7 @@ exports.logging = {
     'timestamp' : 'YYYY-MM-DD HH:mm:ss.SSS',
     'aspects': {
 
-        'log' : true            // Log logging errors, do not disable this
+        'log' : true,           // Log logging errors, do not disable this
 
         'request' : true,       // log each request
         'startup' : true,       // Startup greeting
@@ -19,7 +19,7 @@ exports.logging = {
         'get' : false,          // debug get node
         'put' : false,          // debug put node
         'queue' : false,        // debug node load queuing
-        'construction' : false, // debug full node construction
+        'construction' : false  // debug full node construction
 
     }
 };
@@ -45,6 +45,8 @@ if (process.env.CATCONF_TEST === undefined) {
     exports.logging.aspects.startup = false;
 
 }
+
+exports.catconfUrl = 'http://localhost:' + exports.catconfPort + '/';
 
 /* Settings to connect to couchdb */
 exports.protocol = "http";
