@@ -34,10 +34,9 @@ function getViewUrl (view) {
 
 }
 
-exports.getNode = function (userId,nodeId) {
+exports.getNode = function (userId, nodeId, rawData) {
 
     /* TODO: remove authorization from here */
-    /* TODO: _prop-handling must be here */
 
     var options = {
         dataFilter: parseDBJSON,
@@ -45,25 +44,52 @@ exports.getNode = function (userId,nodeId) {
     };
     var def = $.Deferred();
     log('storage','Requesting ' + options.url);
-
     $.ajax( options ).done(dataReadDone).fail(dataReadFailed);
 
     return def;
 
     function dataReadFailed (err) {def.reject(err);}
 
-    function dataReadDone (data) {
+    function dataReadDone (node) {
 
-        if (data.metadata.authorization !== undefined) {
+        log('storage','Node loaded ' + nodeId);
 
-            if (data.metadata.nodeId == userId) def.resolve(data);
+        if (node.metadata.nodeId === undefined) {
 
-            else def.reject({status:403,
-                        statusText: "Cannot read other users\' nodes"});
+            node.metadata.nodeId = node._id;
+            log ('storage','Warning: no explicit nodeId in ' +
+                node.metadata.nodeId);
+
+        }
+
+        if (!rawData) {
+
+            for (var key in node) {
+
+                if ((typeof(key) == 'string') && (key[0] == '_')) {
+
+                    delete node[key];
+
+                }
+
+            }
+
+        }
+
+        if (node.metadata.authorization === undefined) {
+
+            def.resolve(node);
+
+        } else if (node.metadata.nodeId == userId) {
+            
+            def.resolve(node);
 
         } else {
-
-            def.resolve(data);
+            
+            def.reject({
+                status:403,
+                statusText: "Cannot read other users\' nodes"
+            });
 
         }
 
@@ -103,7 +129,6 @@ function listNodes(view,params) {
     }
 
     log('storage',JSON.stringify(options));
-
     $.ajax( options ).done( listLoadOk ).fail( listLoadFail );
 
     return def;
@@ -162,7 +187,7 @@ exports.deleteNode = function (userId, nodeId) {
 
     var def = $.Deferred();
 
-    exports.getNode ( userId, nodeId )
+    exports.getNode ( userId, nodeId, true )
         .done(oldNodeLoaded)
         .fail(deleteFail);
 
@@ -200,7 +225,7 @@ exports.putNode = function (userId, node) {
 
     var def = $.Deferred();
 
-    exports.getNode ( userId, node.metadata.nodeId )
+    exports.getNode ( userId, node.metadata.nodeId, true )
         .done(setRevisionInfo)
         .fail(writeNewNode);
 

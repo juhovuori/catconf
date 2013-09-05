@@ -389,21 +389,6 @@ function getNode (req,res) {
         log('construction','Start constructing node ' + nodeId);
         var merged = constructWithSideEffects(nodeId,nodesLoaded,{});
         log('construction','Constructed ' + JSON.stringify(merged));
-        merged.metadata.nodeId = merged._id;
-
-        if (!rawData) {
-
-            for (var key in merged) {
-
-                if ((typeof(key) == 'string') && (key[0] == '_')) {
-
-                    delete merged[key];
-
-                }
-
-            }
-
-        }
 
         res.send(merged);
     }
