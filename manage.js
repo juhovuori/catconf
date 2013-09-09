@@ -1,5 +1,6 @@
 var doc = "Usage:\n" +
 " manage.js [-Dfhqv] deploy\n" +
+" manage.js [-Dfhqv] world <filename>\n" +
 " manage.js [-Dfhqv] install\n" +
 " manage.js [-Dfhqv] uninstall\n" +
 " manage.js [-Dfhqv] status\n" +
@@ -35,17 +36,18 @@ function main() {
     var opts = require('docopt').docopt(doc);
     var domain = opts['<domain>'];
     var username = opts['<username>'];
-    var server = nano(conf.couchUrl);
-    var db = server.db.use(conf.db);
+    var server = nano(conf.couchDB.url);
+    var db = server.db.use(conf.couchDB.db);
 
     //console.log(opts);
     if (opts['--debug']) { DEBUG = true; }
     if (opts['--debug'] || opts['--verbose']) { VERBOSE = true; }
     if (opts['--quiet']) { QUIET = true; }
-    if (opts['status']) status(server,conf.db,conf.url);
-    else if (opts['uninstall']) uninstall(server,conf.db);
-    else if (opts['install']) install(server,conf.db);
+    if (opts['status']) status(server,conf.couchDB.db,conf.url);
+    else if (opts['uninstall']) uninstall(server,conf.couchDB.db);
+    else if (opts['install']) install(server,conf.couchDB.db);
     else if (opts['deploy']) deploy(db);
+    else if (opts['world']) world(db,opts['<filename>']);
     else if (opts['list-users']) listDB(db);
     else if (opts['list-domains']) listDB(db);
     else if (opts['list-domain-admins']) listDomainAdmins(db);
@@ -134,6 +136,39 @@ function deploy(db) {
     var fs = require('fs');
     var buf = fs.readFileSync('couch-design.json')
     var doc = JSON.parse(buf.toString('utf-8'));
+
+    db.get(doc._id,function (err,body) {
+        if ((body) && (body._rev !== undefined)) doc._rev = body._rev;
+        writeObject(db, doc, function (err) {
+            if (err) process.exit(1);
+            else process.exit(0);
+        });
+    });
+
+}
+
+function world(db,filename) {
+    var fs = require('fs');
+    var buf = fs.readFileSync(filename);
+    var doc = JSON.parse(buf.toString('utf-8'));
+    var async = require('async');
+
+    async.map(doc.world,sendDoc,results);
+
+    function sendDoc (doc,myDone) {
+
+        writeObject(db, doc, myDone);
+
+    }
+
+    function results (err,results) {
+
+        if (err) console.log(err);
+        else console.log('world created.');
+        console.log(results);
+
+    }
+
 
     db.get(doc._id,function (err,body) {
         if ((body) && (body._rev !== undefined)) doc._rev = body._rev;

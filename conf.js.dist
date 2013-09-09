@@ -1,5 +1,10 @@
 var btoa = require("btoa");
 
+var testConfiguration = (process.env.CATCONF_TEST !== undefined);
+exports.testConfiguration = testConfiguration;
+
+if (testConfiguration) console.log('running with test configuration.');
+
 /* What to log on where to write it */
 exports.logging = {
     'logfile' : './catconf.log', // filename or undefined for no logging
@@ -9,8 +14,8 @@ exports.logging = {
 
         'log' : true,           // Log logging errors, do not disable this
 
-        'request' : true,       // log each request
-        'startup' : true,       // Startup greeting
+        'request' : testConfiguration ? false : true, // log each request
+        'startup' : testConfiguration ? false : true, // Startup greeting
 
         'auth' : false,         // debug authorization module
         'delete' : false,       // debug deletion
@@ -24,28 +29,7 @@ exports.logging = {
     }
 };
 
-if (process.env.CATCONF_TEST === undefined) {
-
-    // These are for production server
-
-    exports.db = "catconf";     // CouchDB database for nodes
-    exports.catconfPort = 3000; // catconf API will listen on this port       
-    exports.testConfiguration = false;
-
-} else {
-
-    // These are used when running tests
-
-    console.log('running with test configuration.');
-
-    exports.db = "catconf_test";
-    exports.catconfPort = 3001;
-    exports.testConfiguration = true;
-    exports.logging.aspects.request = false;
-    exports.logging.aspects.startup = false;
-
-}
-
+exports.catconfPort = testConfiguration ? 3001 : 3000;
 exports.catconfUrl = 'http://localhost:' + exports.catconfPort + '/';
 
 // Some secret string used for cookie hashing
@@ -60,6 +44,7 @@ exports.couchDB = {
     protocol : "http",
     host : "localhost",
     port : "5984",
+    db : testConfiguration ? "catconf" :"catconf_test",
     user : "admin",
     password : "admin",
 }
