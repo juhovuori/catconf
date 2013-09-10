@@ -44,7 +44,7 @@ exports.couchDB = {
     protocol : "http",
     host : "localhost",
     port : "5984",
-    db : testConfiguration ? "catconf" :"catconf_test",
+    db : testConfiguration ? "catconf_test" :"catconf",
     user : "admin",
     password : "admin",
 }
