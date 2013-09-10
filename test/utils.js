@@ -1,10 +1,7 @@
 var libcatconf = require("../libcatconf");
 var conf = require("../conf");
-var $ = require("jquery");
-var fs = require("fs");
 var data = require("./data.js");
-var http = require("http");
-var async = require("async");
+var storage = require('../' + conf.storageModule);
 
 var initialRetrys = 5;
 
@@ -17,108 +14,53 @@ if (process.env.CATCONF_TEST === undefined) {
 
 libcatconf.configure({ urlBase:conf.catconfUrl, });
 
-var couchDesignJSON = fs.readFileSync('couch-design.json').
-                        toString('utf-8');
-
 exports.initializeTestDBBeforeTest = function (next) {
 
-    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db+'/';
-    var headers = {
-        'Authorization': conf.couchDB.authorization,
-    };
+    // Sometimes couch is too slow so just retry n times
+    var retrys = initialRetrys;
 
-    var retrys = initialRetrys; // Sometimes couch is too slow so just retry n times
-
-    return dbExists().
-        done(destroyAndCreateDB).
-        fail(createDB);
-
-    function dbExists() {
-
-        return $.ajax({ url:dbUrl, type:'GET', headers:headers });
-
-    }
+    return storage.dbExists()
+        .done(destroyAndCreateDB)
+        .fail(createDB);
 
     function destroyAndCreateDB() {
 
-        if (retrys == 0) {
-            
-            initFail()
-
-        } else {
-
-            retrys --;
-
-            return $.ajax({ url:dbUrl, type:'DELETE', headers:headers }).
-                done(createDB).
-                fail(initFail);
-
-        }
-
-    }
-
-    function retryCreateDB() {
-
-        console.log("Database initialization failed, retrying in a while. " +
-                    "(This is not serious)");
-        setTimeout(createDB,1000);
+        storage._WARNING_destroyDB()
+            .done(createDB)
+            .fail(initFail);
 
     }
 
     function createDB() {
 
-        return $.ajax({ url:dbUrl, type:'PUT', headers:headers }).
-            done(putDesignDoc).
-            fail(retryCreateDB);
+        if (retrys == 0) {
+            
+            initFail({
+                responseText: '{"error":"Fail","reason":"Too many retries"}'
+            });
 
-    }
+        } else {
 
-    function putDesignDoc() {
+            retrys --;
 
-        var options = {
-            url:dbUrl + '/_design/catconf',
-            type:'PUT',
-            headers:headers,
-            contentType: "application/json",
-            data: couchDesignJSON,
-            processData: false
-        };
-
-        return $.ajax(options).
-            done(putWorld).
-            fail(initFail);
-
-    }
-
-    function putWorld() {
-
-        async.map(data.testWorld,sendDoc,results);
-
-        function sendDoc (doc,myDone) {
-
-            var nodeId = doc.metadata.nodeId;
-            var url = dbUrl + '/'+nodeId;
-
-            var options = {
-                url:url,
-                type:'PUT',
-                headers:headers,
-                contentType: "application/json",
-                data: JSON.stringify(doc),
-                processData: false
-            };
-            $.ajax(options).
-                done(function() {myDone(null,null);}).
-                fail(function() {myDone('error',null);});
+            return storage.createDB(data.testWorld)
+                .done(initOk)
+                .fail(retryCreateDB);
 
         }
 
-        function results (err,results) {
+    }
 
-            if (err) next(new Error(msg));
-            else next();
+    function retryCreateDB(err) {
 
-        }
+        console.log("Retry DB creation.. (This is not serious)");
+        setTimeout(createDB,100);
+
+    }
+
+    function initOk() {
+
+        next();
 
     }
 

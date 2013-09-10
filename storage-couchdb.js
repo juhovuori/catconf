@@ -4,6 +4,15 @@ var $ = require('jquery');
 
 var conf = require('./conf');
 var log = require('./logging').log;
+var async = require("async");
+
+function getCouchDesignJSON() {
+
+    var fs = require("fs");
+    var json = fs.readFileSync('couch-design.json').toString('utf-8');
+    return json;
+
+}
 
 /**
  * Parse and validate data read from backend.
@@ -245,3 +254,95 @@ exports.putNode = function (node) {
 
 }
 
+/**
+ * Needed for manage and testing
+ */
+exports.dbExists = function() {
+
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db;
+    var headers = {
+        'Authorization': conf.couchDB.authorization,
+    };
+
+    return $.ajax({ url:dbUrl, type:'GET', headers:headers });
+
+}
+
+/**
+ * Needed for manage and testing
+ */
+exports._WARNING_destroyDB = function() {
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db+'/';
+    var headers = {
+        'Authorization': conf.couchDB.authorization,
+    };
+    return $.ajax({ url:dbUrl, type:'DELETE', headers:headers })
+}
+
+/**
+ * Needed for manage and testing
+ */
+exports.createDB = function (world) {
+
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db;
+    var def = $.Deferred();
+    var headers = {
+        'Authorization': conf.couchDB.authorization,
+    };
+    $.ajax({ url:dbUrl, type:'PUT', headers:headers })
+        .done(putDesignDoc)
+        .fail(createFail);
+
+    return def;
+
+    function putDesignDoc() {
+
+        var options = {
+            url:dbUrl + '/_design/catconf',
+            type:'PUT',
+            headers:headers,
+            contentType: "application/json",
+            data: getCouchDesignJSON(),
+            processData: false
+        };
+
+        return $.ajax(options).
+            done(putWorld).
+            fail(createFail);
+
+    }
+
+    function putWorld() {
+
+        if (world === undefined) {
+            
+            createOk();
+
+        } else {
+
+            async.map(world,sendDoc,results);
+
+        }
+
+        function sendDoc (doc,myDone) {
+
+            exports.putNode(doc)
+                .done( function() { myDone(null,null); } )
+                .fail( function() { myDone('error',null); } );
+
+        }
+
+        function results (err,results) {
+
+            if (err) createFail(new Error(msg));
+            else createOk();
+
+        }
+
+    }
+
+    function createFail(err) { def.reject(err); }
+
+    function createOk(data) { def.resolve(data); }
+
+}
