@@ -314,7 +314,7 @@ exports.createDB = function (world) {
 
     function putWorld() {
 
-        if (world === undefined) {
+        if (!world) {
             
             createOk();
 
@@ -344,5 +344,46 @@ exports.createDB = function (world) {
     function createFail(err) { def.reject(err); }
 
     function createOk(data) { def.resolve(data); }
+
+}
+
+exports.status = function () {
+
+    var headers = {
+        'Authorization': conf.couchDB.authorization,
+    };
+    var serverUrl = conf.couchDB.url;
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db;
+    var rv = {}
+    var def = $.Deferred();
+
+    $.ajax({ url:serverUrl, type:'GET', headers:headers })
+        .done(serverUp)
+        .fail( fail );
+
+    return def;
+
+    function serverUp(data) {
+
+        rv.server = data;
+        $.ajax({ url:dbUrl, type:'GET', headers:headers })
+            .done(dbOk)
+            .fail(fail);
+
+    }
+
+    function dbOk(data) {
+
+        rv.db = data;
+        def.resolve(rv);
+
+    }
+
+    function fail(err) {
+
+        rv.error = err;
+        def.reject(rv);
+
+    }
 
 }

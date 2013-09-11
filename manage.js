@@ -1,88 +1,71 @@
 var doc = "Usage:\n" +
 " manage.js [-Dfhqv] deploy\n" +
 " manage.js [-Dfhqv] world <filename>\n" +
-" manage.js [-Dfhqv] install\n" +
-" manage.js [-Dfhqv] uninstall\n" +
+" manage.js [-Dfhqv] install [<world>]\n" +
+" manage.js [-Dfhqv] uninstall <really>\n" +
 " manage.js [-Dfhqv] status\n" +
 " manage.js [-Dfhqv] list-users\n" +
 " manage.js [-Dfhqv] list-domains\n" +
-" manage.js [-Dfhqv] user-conf [-1]\n" +
-" manage.js [-Dfhqv] domain-conf [-1]\n" +
-" manage.js [-Dfhqv] list-domain-admins\n" +
-" manage.js [-Dfhqv] add-domain-admin <domain> <username>\n" +
-" manage.js [-Dfhqv] remove-domain-admin <domain> <username>\n" +
-" manage.js [-Dfhqv] add-domain <domain>\n" +
-" manage.js [-Dfhqv] remove-domain <domain>\n" +
+" manage.js [-Dfhqv] add-domain <domain> <admin> [...]\n" +
+" manage.js [-Dfhqv] remove <nodeId>\n" +
 " manage.js [-Dfhqv] add-user <username>\n" +
 " manage.js [-Dfhqv] password <username>\n" +
-" manage.js [-Dfhqv] remove-user <username>\n" +
 "\n" +
 "-h --help       show this\n" +
 "--version       show version\n" +
 "-f --force      proceed with destructive actions\n" +
-"-v --verbose    more output\n" +
-"-D --debug      still more output\n" +
-"-q --quiet      no output\n";
+"-q --quiet      less output}n";
 
-var VERBOSE = false;
-var DEBUG = false;
-var QUIET = false;
+var VERBOSE = true;
+
+var conf = require('./conf');
+var nano = require('nano');
+var opts = require('docopt').docopt(doc);
+var storage = require('./' + conf.storageModule);
 
 if (require.main === module) { main (); }
 
 function main() {
-    var conf = require('./conf');
-    var nano = require('nano');
-    var opts = require('docopt').docopt(doc);
+
     var domain = opts['<domain>'];
     var username = opts['<username>'];
-    var server = nano(conf.couchDB.url);
-    var db = server.db.use(conf.couchDB.db);
+    var really = opts['<really>'];
+    var world = opts['<world>'];
 
-    //console.log(opts);
-    if (opts['--debug']) { DEBUG = true; }
-    if (opts['--debug'] || opts['--verbose']) { VERBOSE = true; }
-    if (opts['--quiet']) { QUIET = true; }
-    if (opts['status']) status(server,conf.couchDB.db,conf.url);
-    else if (opts['uninstall']) uninstall(server,conf.couchDB.db);
-    else if (opts['install']) install(server,conf.couchDB.db);
-    else if (opts['deploy']) deploy(db);
-    else if (opts['world']) world(db,opts['<filename>']);
-    else if (opts['list-users']) listDB(db);
-    else if (opts['list-domains']) listDB(db);
-    else if (opts['list-domain-admins']) listDomainAdmins(db);
-    else if (opts['add-domain-admin']) addDomainAdmin(db,domain,username);
-    else if (opts['remove-domain-admin']) removeDomainAdmin(db,domain,username);
-    else if (opts['password']) password(db,username);
-    else if (opts['add-user']) addUser(db,username);
-    else if (opts['remove-user']) removeUser(db,username);
-    else if (opts['add-domain']) addDomain(db,domain);
-    else if (opts['remove-domain']) removeDomain(db,domain);
+    if (opts['--quiet']) { VERBOSE = false; }
+
+    if (opts['status']) serverStatus();
+    else if (opts['uninstall']) uninstall(really);
+    else if (opts['install']) install(world);
+    else if (opts['deploy']) deploy();
+    else if (opts['world']) world(opts['<filename>']);
+    else if (opts['list-users']) listDB();
+    else if (opts['list-domains']) listDB();
+    else if (opts['remove']) removeNode(username);
+    else if (opts['add-domain']) addDomain(domain);
+    else if (opts['add-user']) addUser(username);
+    else if (opts['password']) password(username);
     else console.log('Should not happen.');
 }
 
-function listDomainAdmins(db,users) {
-    return;
+function addDomain(domain,admins) {
+
+    var node = {
+        metadata : {
+            nodeId: domain,
+            nodeAdmins: admins,
+            parents: []
+        }
+    };
+    storage.putNode (node)
+        .done(commandOk)
+        .fail(commandFail);
 }
 
-function addDomainAdmin(db,users,domain,username) {
-    return;
-}
+function removeNode(node) {
 
-function removeDomainAdmin(db,users,domain,username) {
-    return;
-}
+    storage.deleteNode(node);
 
-function addDomain(db,domain) {
-    writeObject(db, {
-        _id: domain,
-        name: domain,
-        parents: []
-    });
-}
-
-function removeDomain(db,domain) {
-    removeObject(db,domain);
 }
 
 function getPassword(callback) {
@@ -132,72 +115,43 @@ function promptPassword (callback) {
     });
 }
 
-function deploy(db) {
-    var fs = require('fs');
-    var buf = fs.readFileSync('couch-design.json')
-    var doc = JSON.parse(buf.toString('utf-8'));
+function deploy() {
 
-    db.get(doc._id,function (err,body) {
-        if ((body) && (body._rev !== undefined)) doc._rev = body._rev;
-        writeObject(db, doc, function (err) {
-            if (err) process.exit(1);
-            else process.exit(0);
-        });
-    });
+    console.log('deploy is deprecated. install does everything.');
 
 }
 
-function world(db,filename) {
-    var fs = require('fs');
-    var buf = fs.readFileSync(filename);
-    var doc = JSON.parse(buf.toString('utf-8'));
-    var async = require('async');
+function world(filename) {
 
-    async.map(doc.world,sendDoc,results);
-
-    function sendDoc (doc,myDone) {
-
-        writeObject(db, doc, myDone);
-
-    }
-
-    function results (err,results) {
-
-        if (err) console.log(err);
-        else console.log('world created.');
-        console.log(results);
-
-    }
-
-
-    db.get(doc._id,function (err,body) {
-        if ((body) && (body._rev !== undefined)) doc._rev = body._rev;
-        writeObject(db, doc, function (err) {
-            if (err) process.exit(1);
-            else process.exit(0);
-        });
-    });
+    console.log('world is deprecated. install does everything.');
 
 }
 
-function addUser(db,username) {
-    getPassword(function (password) {
-        if (password === undefined) return;
-        writeObject(db, {
-            _id: username,
-            name: username,
+function addUser(username) {
+
+    getPassword( function (password) {
+
+        if (password === undefined) return commandFail();
+
+        var node = {
             metadata: {
+                nodeId: username,
                 parents: [],
                 authorization: {
                     type: 'password',
                     password: password
                 }
             }
-        });
+        };
+        storage.putNode (node)
+            .done(commandOk)
+            .fail(commandFail);
+    
     });
+
 }
 
-function password(db,username) {
+function password(username) {
     var bcrypt = require('bcrypt');
     console.log('figuring out whose password to change.');
     db.get(username,function(err,body,header) {
@@ -232,63 +186,53 @@ function password(db,username) {
     });
 }
 
-function removeUser(db,username) {
-    removeObject(db,username);
+function serverStatus() {
+
+    storage.status()
+        .done( function (data) {
+
+            if (VERBOSE) { console.log(data); }
+            commandOk();
+
+        })
+        .fail(commandFail);
+
 }
 
-function status(server,db,url) {
-    console.log(url);
-    server.db.get('',function(err,body,header) {
-            if (err) {
-                console.log("Server not up.");
-                //console.log(err);
-            } else {
-                console.log("Server up.");
-                if (VERBOSE) console.log(body);
+function uninstall(arg) {
 
-                server.db.get(db,function(err,body,header) {
-                    if (err) {
-                        console.log("Database not found");
-                        if (VERBOSE) console.log(err);
-                    } else {
-                        console.log( "Database found" );
-                        //console.log(body);
-                    }
-                });
-            }
-    });
+    var reqArg = 'i-know-this-destroys-my-data';
+
+    if (arg != reqArg) {
+        
+        console.log('Please use this command as follows:');
+        console.log('manage uninstall ' + reqArg);
+
+        return commandFail();
+
+    }
+
+    console.log('Attempting to destroy database');
+    storage._WARNING_destroyDB()
+        .done( commandOk )
+        .fail( commandFail);
+
 }
 
-function uninstall(server,db) {
-    console.log('Attempting to destroy db ' + db);
-    server.db.destroy(db,function (err,body,header) {
-        if (err) {
-            console.log('ERROR: ' + err);
-            process.exit(1);
-        } else {
-            console.log('Database removed.');
-            console.log('CouchDB is still running though.');
-            process.exit(0);
-        }
-        console.log(body); 
-    });
-}
+function install(world) {
 
-function install(server,db) {
-    console.log('Attempting to create db ' + db);
-    server.db.create(db,function (err,body,header) {
-        if (err) {
-            console.log('Database creation failed: ' + err);
-            process.exit(1);
-        } else {
-            console.log('Database created. Initializing.');
-            deploy( server.db.use(db) );
-        }
-    });
+    if (VERBOSE) console.log('Attempting to create database'
+        + (world !== undefined ?  'and populate it with initial nodes.' : '')
+        );
+
+    storage.createDB(world)
+        .done( commandOk )
+        .fail( commandFail);
+
 }
 
 
-function listDB(db) {
+function listDB() {
     db.list(function(err,body,header) {
         if (err) {
             console.log('Error.');
@@ -316,45 +260,19 @@ function listDB(db) {
     });
 }
 
-function writeObject(db,ob,cb) {
-    if (VERBOSE) {
-        console.log('attempting to write object.');
-        console.log(ob);
-    } else {
-        console.log('attempting to write object ' + ob._id + '.');
-    }
-    db.insert(ob,function (err,body,headers) {
-        if(err) {
-            console.log('Error.');
-            console.log(err);
-            if (cb) cb(err);
-        } else {
-            console.log('Ok.');
-            if (cb) cb();
-        }
-    });
+function commandOk() {
+
+    if (VERBOSE) console.log('Ok');
+
+    process.exit(0);
+
 }
 
-function removeObject(db,id) {
-    console.log('querying revision of ' + id + '.');
-    db.get(id,function (err,body) {
-        var rev
-        if(err) {
-            console.log('Error.');
-            console.log(err);
-        } else {
-            rev = body._rev;
-            console.log('attempting to delete revision ' + rev + '.');
-            db.destroy(id,rev,function (err,body) {
-                if(err) {
-                    console.log('Error.');
-                    console.log(err);
-                } else {
-                    console.log('Ok.');
-                }
-            });
-        }
-    });
-}
+function commandFail(err) {
+    
+    if (VERBOSE) console.log(err);
 
+    process.exit(1);
+
+}
 
