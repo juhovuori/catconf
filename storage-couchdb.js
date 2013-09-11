@@ -4,6 +4,15 @@ var $ = require('jquery');
 
 var conf = require('./conf');
 var log = require('./logging').log;
+var async = require("async");
+
+function getCouchDesignJSON() {
+
+    var fs = require("fs");
+    var json = fs.readFileSync('couch-design.json').toString('utf-8');
+    return json;
+
+}
 
 /**
  * Parse and validate data read from backend.
@@ -245,3 +254,136 @@ exports.putNode = function (node) {
 
 }
 
+/**
+ * Needed for manage and testing
+ */
+exports.dbExists = function() {
+
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db;
+    var headers = {
+        'Authorization': conf.couchDB.authorization,
+    };
+
+    return $.ajax({ url:dbUrl, type:'GET', headers:headers });
+
+}
+
+/**
+ * Needed for manage and testing
+ */
+exports._WARNING_destroyDB = function() {
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db+'/';
+    var headers = {
+        'Authorization': conf.couchDB.authorization,
+    };
+    return $.ajax({ url:dbUrl, type:'DELETE', headers:headers })
+}
+
+/**
+ * Needed for manage and testing
+ */
+exports.createDB = function (world) {
+
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db;
+    var def = $.Deferred();
+    var headers = {
+        'Authorization': conf.couchDB.authorization,
+    };
+    $.ajax({ url:dbUrl, type:'PUT', headers:headers })
+        .done(putDesignDoc)
+        .fail(createFail);
+
+    return def;
+
+    function putDesignDoc() {
+
+        var options = {
+            url:dbUrl + '/_design/catconf',
+            type:'PUT',
+            headers:headers,
+            contentType: "application/json",
+            data: getCouchDesignJSON(),
+            processData: false
+        };
+
+        return $.ajax(options).
+            done(putWorld).
+            fail(createFail);
+
+    }
+
+    function putWorld() {
+
+        if (!world) {
+            
+            createOk();
+
+        } else {
+
+            async.map(world,sendDoc,results);
+
+        }
+
+        function sendDoc (doc,myDone) {
+
+            exports.putNode(doc)
+                .done( function() { myDone(null,null); } )
+                .fail( function() { myDone('error',null); } );
+
+        }
+
+        function results (err,results) {
+
+            if (err) createFail(new Error(msg));
+            else createOk();
+
+        }
+
+    }
+
+    function createFail(err) { def.reject(err); }
+
+    function createOk(data) { def.resolve(data); }
+
+}
+
+exports.status = function () {
+
+    var headers = {
+        'Authorization': conf.couchDB.authorization,
+    };
+    var serverUrl = conf.couchDB.url;
+    var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db;
+    var rv = {}
+    var def = $.Deferred();
+
+    $.ajax({ url:serverUrl, type:'GET', headers:headers })
+        .done(serverUp)
+        .fail( fail );
+
+    return def;
+
+    function serverUp(data) {
+
+        rv.server = data;
+        $.ajax({ url:dbUrl, type:'GET', headers:headers })
+            .done(dbOk)
+            .fail(fail);
+
+    }
+
+    function dbOk(data) {
+
+        rv.db = data;
+        def.resolve(rv);
+
+    }
+
+    function fail(err) {
+
+        rv.error = err;
+        def.reject(rv);
+
+    }
+
+}
