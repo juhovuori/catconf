@@ -19,9 +19,9 @@ var doc = "Usage:\n" +
 var VERBOSE = true;
 
 var conf = require('./conf');
-var nano = require('nano');
 var opts = require('docopt').docopt(doc);
 var storage = require('./' + conf.storageModule);
+var bcrypt = require('bcrypt');
 
 if (require.main === module) { main (); }
 
@@ -152,7 +152,6 @@ function addUser(username) {
 }
 
 function password(username) {
-    var bcrypt = require('bcrypt');
     console.log('figuring out whose password to change.');
     db.get(username,function(err,body,header) {
         if (err) {
