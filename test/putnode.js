@@ -134,6 +134,21 @@ describe('PUT', function() {
 
     });
 
+    it('too big node fails',function(done) {
+
+        var myNode = JSON.parse(JSON.stringify(newDomain));
+
+        // construct enough elements so that JSON serialization of the node
+        // becomes larger than allowed.
+        var nElements = conf.nodeSizeLimit / 7;
+        for (;nElements > 0; nElements--) {
+            myNode[nElements] = true;
+        }
+
+        putNodeFails (done,{},myNode,[400]);
+
+    });
+
     // TODO: non-array nodeAdmins
 
     // TODO: non-existing nodeAdmins

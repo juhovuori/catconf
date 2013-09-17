@@ -32,6 +32,9 @@ exports.logging = {
 exports.catconfPort = testConfiguration ? 3001 : 3000;
 exports.catconfUrl = 'http://localhost:' + exports.catconfPort + '/';
 
+// Refuse to write nodes more than this many bytes, 0 for no limit
+exports.nodeSizeLimit = 1024*1024 // 1MB default
+
 // Some secret string used for cookie hashing
 exports.cookieSecret = 'CHANGE-THIS-AND-KEEP-SECRET';
 

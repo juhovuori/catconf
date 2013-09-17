@@ -615,6 +615,25 @@ function putNode (req,res) {
 
         }
 
+        if (tooBig(node)) {
+
+            return 'Node too big. Size limit ' + conf.nodeSizeLimit + ' bytes';
+
+        }
+
+    }
+
+    function tooBig(node) {
+
+        // TODO: This should be checked in json parsing middleware.
+        // Checking it here results in extra serialization step => slow
+
+        if (conf.nodeSizeLimit == 0) return false;
+
+        if (JSON.stringify(node).length > conf.nodeSizeLimit) return true;
+
+        return false;
+
     }
 
     function isThereALoopOrMissingParent(currentNodeId,nodesSoFar) {
