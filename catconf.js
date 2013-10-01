@@ -128,10 +128,14 @@ function mergeWithSideEffects (merged,node) {
 
 }
 
-function constructWithSideEffects (nodeId,nodes,mergedNode) {
+function constructWithSideEffects (nodeId,nodes,mergedNode,parentsOverRide) {
     // Recursively merge node with its parents
+    // nodeId == nodeId to merge to
+    // nodes == object of nodes
+    // mergedNode == object to write properties to (should be {} initially)
+    // parentsOverRide == use these in construction instead of real ones
 
-    if (nodes[nodeId] === undefined) {
+    if ((!parentsOverRide) && (nodes[nodeId] === undefined)) {
 
         // This happens in inheritance loops or diamonds.
         // Things go just fine if we just stop here.
@@ -141,9 +145,9 @@ function constructWithSideEffects (nodeId,nodes,mergedNode) {
     }
 
     var current = nodes[nodeId];
-    nodes[nodeId] = undefined;
+    delete nodes[nodeId];
 
-    for (var i in current.metadata.parents) {
+    for (var i in parentsOverRide || current.metadata.parents) {
 
         constructWithSideEffects(current.metadata.parents[i],nodes,mergedNode);
 
@@ -151,7 +155,8 @@ function constructWithSideEffects (nodeId,nodes,mergedNode) {
 
     log('construction','Merging ' + JSON.stringify(current) + ' to ' + 
         JSON.stringify(mergedNode));
-    mergeWithSideEffects(mergedNode,current);
+
+    if (!parentsOverRide) mergeWithSideEffects(mergedNode,current);
 
     // Metadata properties won't inherit.
     // Because they were just inherited, we undo this by just
@@ -159,7 +164,6 @@ function constructWithSideEffects (nodeId,nodes,mergedNode) {
     // from current node. 
 
     mergedNode.metadata = current.metadata;
-
     log('construction','Merged a new node: ' + JSON.stringify(mergedNode));
 
     return mergedNode;
@@ -501,6 +505,7 @@ function putNode (req,res) {
     }
 
     function recursiveUnmergeWithSideEffects (node,unmergable) {
+        // Recursively remove every property in 'unmergable' from 'node'
 
         for (var key in unmergable) {
 
@@ -680,10 +685,13 @@ function putNode (req,res) {
         if (error) return validationFail(error);
 
         // construct a version of node with non-inherited properties only
-        var stubNode = { metadata: {parents : newNode.parents }};
-        nodes[nodeId] = stubNode;
         log('reduction','Starting reduction with ' + JSON.stringify(nodes));
-        var unmergable = constructWithSideEffects(nodeId,nodes,{});
+        log('reduction','nodeId ' + nodeId + ' parents: ' +
+            JSON.stringify(newNode.metadata.parents));
+        log('reduction','Node to reduce ' + JSON.stringify(newNode));
+        var unmergable = constructWithSideEffects(nodeId,nodes,{},
+                                                  newNode.metadata.parents);
+        log('reduction','Nodes now: ' + JSON.stringify(nodes));
         // preserve special properties
         delete unmergable.metadata;
         log('reduction','Unmerging ' + JSON.stringify(unmergable));

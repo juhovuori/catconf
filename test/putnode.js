@@ -39,8 +39,10 @@ describe('PUT', function() {
 
             function childRead (node) {
 
-                console.log('READ ' + JSON.stringify(node));
-                console.log(creds);
+                if (node.setting2 !== true) {
+                    var msg = 'Read wrong node early ' + JSON.stringify(node);
+                    return done(new Error(msg));
+                }
                 putNode(childWrittenAgain, creds, node);
 
             }
@@ -72,7 +74,6 @@ describe('PUT', function() {
 
         });
 
-    return;
     it('new domain succeeds by unauthenticated',function(done) {
         putNode (done,{},newDomain);
     });
