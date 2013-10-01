@@ -13,6 +13,7 @@ describe('PUT', function() {
     it('created object does not contain properties inherited from parents',
         function(done) {
 
+            var creds = utils.getCreds(data.testUser2)
             libcatconf.getNode(utils.getNodeId(data.testDomain))
                       .done(domainRead)
                       .fail(fail);
@@ -25,24 +26,39 @@ describe('PUT', function() {
 
                 }
 
-                putNode(childWritten, {}, data.testDomainChild);
+                putNode(childWritten, creds, data.testDomainChild);
 
             }
 
             function childWritten (err) {
                 if (err) return fail(err);
-                libcatconf.getNode( utils.getNodeId(data.testDomainChild),
-                                    {singleLevel:true} )
+                libcatconf.getNode( utils.getNodeId(data.testDomainChild))
                     .done(childRead)
                     .fail(fail);
             }
 
             function childRead (node) {
 
+                console.log('READ ' + JSON.stringify(node));
+                console.log(creds);
+                putNode(childWrittenAgain, creds, node);
+
+            }
+
+            function childWrittenAgain (err) {
+                if (err) return fail(err);
+                libcatconf.getNode( utils.getNodeId(data.testDomainChild),
+                                    {singleLevel:true} )
+                    .done(childReadAgain)
+                    .fail(fail);
+            }
+
+            function childReadAgain (node) {
+
                 if ((Object.keys(node).length != 2) ||
                     (node.setting2 !== true)) {
                         var msg = 'Read wrong node ' + JSON.stringify(node);
-                        done(new Error(msg));
+                        return done(new Error(msg));
                 }
                 
                 done();
@@ -50,11 +66,13 @@ describe('PUT', function() {
             }
 
             function fail (err) {
-                done (new Error("Parent load failed: " + err.responseText));
+                var msg = err.responseText || err;
+                done (new Error("Parent load failed: " + msg));
             }
 
         });
 
+    return;
     it('new domain succeeds by unauthenticated',function(done) {
         putNode (done,{},newDomain);
     });
