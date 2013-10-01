@@ -174,6 +174,15 @@ exports.testDomain = {
     "setting1": true
 };
 
+exports.testDomainChild = {
+    "metadata": {
+        "nodeId": "dummydomainxx",
+        "nodeAdmins": ["testuser2"],
+        "parents": ["dummydomain"]
+    },
+    "setting2": true
+};
+
 // This should come out after inheritance
 exports.testDomainFull = {
     "metadata":{

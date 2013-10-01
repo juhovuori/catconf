@@ -53,7 +53,15 @@ exports.initializeTestDBBeforeTest = function (next) {
 
     function retryCreateDB(err) {
 
-        console.log("Retry DB creation.. (This is not serious)");
+        var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db;
+
+        if (err.status == 401) {
+
+            next (new Error(err.responseText));
+
+        }
+
+        console.log("Retry DB creation (" + conf.couchDB.db + ")");
         setTimeout(createDB,100);
 
     }

@@ -10,6 +10,51 @@ describe('PUT', function() {
     beforeEach(utils.initializeTestDBBeforeTest);
 
 
+    it('created object does not contain properties inherited from parents',
+        function(done) {
+
+            libcatconf.getNode(utils.getNodeId(data.testDomain))
+                      .done(domainRead)
+                      .fail(fail);
+
+            function domainRead (node) {
+
+                if (node.setting1 !== true) {
+
+                    return done(new Error('Wrong "setting1".'));
+
+                }
+
+                putNode(childWritten, {}, data.testDomainChild);
+
+            }
+
+            function childWritten (err) {
+                if (err) return fail(err);
+                libcatconf.getNode( utils.getNodeId(data.testDomainChild),
+                                    {singleLevel:true} )
+                    .done(childRead)
+                    .fail(fail);
+            }
+
+            function childRead (node) {
+
+                if ((Object.keys(node).length != 2) ||
+                    (node.setting2 !== true)) {
+                        var msg = 'Read wrong node ' + JSON.stringify(node);
+                        done(new Error(msg));
+                }
+                
+                done();
+
+            }
+
+            function fail (err) {
+                done (new Error("Parent load failed: " + err.responseText));
+            }
+
+        });
+
     it('new domain succeeds by unauthenticated',function(done) {
         putNode (done,{},newDomain);
     });
@@ -144,7 +189,6 @@ describe('PUT', function() {
         for (;nElements > 0; nElements--) {
             myNode[nElements] = true;
         }
-
         putNodeFails (done,{},myNode,[400]);
 
     });

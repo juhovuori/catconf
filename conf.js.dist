@@ -24,6 +24,7 @@ exports.logging = {
         'put' : false,          // debug put node
         'queue' : false,        // debug node load queuing
         'construction' : false, // debug full node construction
+        'reduction' : false,    // debug single-level node reduciton
         'storage' : false       // debug storage module
 
     }

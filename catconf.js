@@ -674,41 +674,32 @@ function putNode (req,res) {
     function validateAndTransform () {
 
         var oldNode = nodes[nodeId];
-
         nodes[nodeId] = newNode; // loop detection needs this
-
         var error = isThereALoopOrMissingParent(nodeId,[]);
-        if (error) {
 
-            validationFail(error);
+        if (error) return validationFail(error);
+
+        // construct a version of node with non-inherited properties only
+        var stubNode = { metadata: {parents : newNode.parents }};
+        nodes[nodeId] = stubNode;
+        log('reduction','Starting reduction with ' + JSON.stringify(nodes));
+        var unmergable = constructWithSideEffects(nodeId,nodes,{});
+        // preserve special properties
+        delete unmergable.metadata;
+        log('reduction','Unmerging ' + JSON.stringify(unmergable));
+        recursiveUnmergeWithSideEffects(newNode, unmergable);
+        log('reduction','Unmerged node into ' + JSON.stringify(newNode));
+        // transform authorization and write
+        var auth = newNode.metadata.authorization;
+
+        if ((typeof auth == 'object') && (auth.type == 'password')) {
+
+            transformAuthorizationAndWrite(newNode);
 
         } else {
 
-            // construct a version of node with non-inherited properties only
-
-            var stubNode = { metadata: {parents : newNode.parents }};
-            nodes[nodeId] = stubNode;
-            var unmergable = constructWithSideEffects(nodeId,nodes,{});
-
-            // preserve special properties
-            delete unmergable.metadata;
-
-            recursiveUnmergeWithSideEffects(newNode, unmergable);
-
-            // transform authorization and write
-
-            var auth = newNode.metadata.authorization;
-
-            if ((typeof auth == 'object') && (auth.type == 'password')) {
-
-                transformAuthorizationAndWrite(newNode);
-
-            } else {
-
-                log('put','Not transforming authorization');
-                writeFinally(newNode);
-
-            }
+            log('put','Not transforming authorization');
+            writeFinally(newNode);
 
         }
 
