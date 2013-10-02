@@ -10,72 +10,6 @@ describe('PUT', function() {
     beforeEach(utils.initializeTestDBBeforeTest);
 
 
-    it('created object does not contain properties inherited from parents',
-        function(done) {
-
-            var creds = utils.getCreds(data.testUser2)
-            libcatconf.getNode(utils.getNodeId(data.testDomain))
-                      .done(domainRead)
-                      .fail(fail);
-
-            function domainRead (node) {
-
-                if (node.setting1 !== true) {
-
-                    return done(new Error('Wrong "setting1".'));
-
-                }
-
-                putNode(childWritten, creds, data.testDomainChild);
-
-            }
-
-            function childWritten (err) {
-                if (err) return fail(err);
-                libcatconf.getNode( utils.getNodeId(data.testDomainChild))
-                    .done(childRead)
-                    .fail(fail);
-            }
-
-            function childRead (node) {
-
-                if (node.setting2 !== true) {
-                    var msg = 'Read wrong node early ' + JSON.stringify(node);
-                    return done(new Error(msg));
-                }
-                putNode(childWrittenAgain, creds, node);
-
-            }
-
-            function childWrittenAgain (err) {
-                if (err) return fail(err);
-                libcatconf.getNode( utils.getNodeId(data.testDomainChild),
-                                    {singleLevel:true} )
-                    .done(childReadAgain)
-                    .fail(fail);
-            }
-
-            function childReadAgain (node) {
-
-                if ((Object.keys(node).length != 2) ||
-                    (node.setting2 !== true)) {
-                        var msg = 'Read wrong node ' + JSON.stringify(node);
-                        return done(new Error(msg));
-                }
-                
-                done();
-
-            }
-
-            function fail (err) {
-                var msg = err.responseText || err;
-                done (new Error("Parent load failed: " + msg));
-            }
-
-        });
-
-    return;
-
     it('new domain succeeds by unauthenticated',function(done) {
         putNode (done,{},newDomain);
     });
@@ -213,6 +147,70 @@ describe('PUT', function() {
         putNodeFails (done,{},myNode,[400]);
 
     });
+
+    it('created object does not contain properties inherited from parents',
+        function(done) {
+
+            var creds = utils.getCreds(data.testUser2)
+            libcatconf.getNode(utils.getNodeId(data.testDomain))
+                      .done(domainRead)
+                      .fail(fail);
+
+            function domainRead (node) {
+
+                if (node.setting1 !== true) {
+
+                    return done(new Error('Wrong "setting1".'));
+
+                }
+
+                putNode(childWritten, creds, data.testDomainChild);
+
+            }
+
+            function childWritten (err) {
+                if (err) return fail(err);
+                libcatconf.getNode( utils.getNodeId(data.testDomainChild))
+                    .done(childRead)
+                    .fail(fail);
+            }
+
+            function childRead (node) {
+
+                if (node.setting2 !== true) {
+                    var msg = 'Read wrong node early ' + JSON.stringify(node);
+                    return done(new Error(msg));
+                }
+                putNode(childWrittenAgain, creds, node);
+
+            }
+
+            function childWrittenAgain (err) {
+                if (err) return fail(err);
+                libcatconf.getNode( utils.getNodeId(data.testDomainChild),
+                                    {singleLevel:true} )
+                    .done(childReadAgain)
+                    .fail(fail);
+            }
+
+            function childReadAgain (node) {
+
+                if ((Object.keys(node).length != 2) ||
+                    (node.setting2 !== true)) {
+                        var msg = 'Read wrong node ' + JSON.stringify(node);
+                        return done(new Error(msg));
+                }
+                
+                done();
+
+            }
+
+            function fail (err) {
+                var msg = err.responseText || err;
+                done (new Error("Parent load failed: " + msg));
+            }
+
+        });
 
     // TODO: non-array nodeAdmins
 
