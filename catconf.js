@@ -132,10 +132,11 @@ function constructWithSideEffects (nodeId,nodes,mergedNode,parentsOverRide) {
     // Recursively merge node with its parents
     // nodeId == nodeId to merge to
     // nodes == object of nodes
-    // mergedNode == object to write properties to (should be {} initially)
+    // mergedNode == object to write properties to
     // parentsOverRide == use these in construction instead of real ones
 
-    if ((!parentsOverRide) && (nodes[nodeId] === undefined)) {
+    if (!mergedNode) mergedNode = {};
+    if (nodes[nodeId] === undefined) {
 
         // This happens in inheritance loops or diamonds.
         // Things go just fine if we just stop here.
@@ -147,7 +148,7 @@ function constructWithSideEffects (nodeId,nodes,mergedNode,parentsOverRide) {
     var current = nodes[nodeId];
     delete nodes[nodeId];
 
-    for (var i in parentsOverRide || current.metadata.parents) {
+    for (var i in current.metadata.parents) {
 
         constructWithSideEffects(current.metadata.parents[i],nodes,mergedNode);
 
@@ -156,7 +157,7 @@ function constructWithSideEffects (nodeId,nodes,mergedNode,parentsOverRide) {
     log('construction','Merging ' + JSON.stringify(current) + ' to ' + 
         JSON.stringify(mergedNode));
 
-    if (!parentsOverRide) mergeWithSideEffects(mergedNode,current);
+    mergeWithSideEffects(mergedNode,current);
 
     // Metadata properties won't inherit.
     // Because they were just inherited, we undo this by just
@@ -384,7 +385,7 @@ function getNode (req,res) {
         // All authentication is already done in storage.getNode
 
         log('construction','Start constructing node ' + nodeId);
-        var merged = constructWithSideEffects(nodeId,nodesLoaded,{});
+        var merged = constructWithSideEffects(nodeId,nodesLoaded);
         log('construction','Constructed ' + JSON.stringify(merged));
 
         res.send(merged);
@@ -487,7 +488,7 @@ function putNode (req,res) {
     var nodes;
     var singleLevel = req.query['single-level'] !== undefined;
 
-    log( 'put', 'Start writing node ' + nodeId );
+    log( 'put', 'Start writing node ' + nodeId + ' ' + JSON.stringify(newNode));
     var error = validateNodeForm( newNode, nodeId );
 
     if (error) {
@@ -504,23 +505,30 @@ function putNode (req,res) {
 
     }
 
-    function recursiveUnmergeWithSideEffects (node,unmergable) {
+    function recursiveUnmerge (node,unmergable) {
         // Recursively remove every property in 'unmergable' from 'node'
 
-        for (var key in unmergable) {
+        var overRidingElements = {};
+        var child;
+
+        for (var key in node) {
 
             if ((typeof(unmergable[key]) == 'object') &&
                 (typeof(node[key]) == 'object')) {
 
-                recursiveUnmergeWithSideEffects(node[key],unmergable[key]);
+                child = recursiveUnmerge(node[key],unmergable[key]);
+                if (Object.keys(child).length != 0) 
+                    overRidingElements[key] = child;
 
-            } else if (node[key] == unmergable[key]) {
+            } else if (node[key] != unmergable[key]) {
 
-                node[key] = undefined;
+                overRidingElements[key] = node[key];
 
             }
 
         }
+
+        return overRidingElements;
 
     }
 
@@ -680,23 +688,28 @@ function putNode (req,res) {
 
         var oldNode = nodes[nodeId];
         nodes[nodeId] = newNode; // loop detection needs this
+        log('reduction','Starting reduction with ' + JSON.stringify(nodes));
+        log('reduction','nodeId ' + nodeId + ' parents: ' +
+            JSON.stringify(((newNode||{}).metadata||{}).parents));
+        log('reduction','Node to reduce ' + JSON.stringify(newNode));
         var error = isThereALoopOrMissingParent(nodeId,[]);
 
         if (error) return validationFail(error);
 
         // construct a version of node with non-inherited properties only
-        log('reduction','Starting reduction with ' + JSON.stringify(nodes));
-        log('reduction','nodeId ' + nodeId + ' parents: ' +
-            JSON.stringify(newNode.metadata.parents));
-        log('reduction','Node to reduce ' + JSON.stringify(newNode));
-        var unmergable = constructWithSideEffects(nodeId,nodes,{},
-                                                  newNode.metadata.parents);
+        for (var i in newNode.metadata.parents) {
+
+            var parentId = newNode.metadata.parents[i];
+            var parent = constructWithSideEffects(parentId,nodes,{});
+            // preserve special properties
+            delete parent.metadata;
+            log('reduction','Unmerging ' + JSON.stringify(parent));
+            newNode = recursiveUnmerge(newNode, parent);
+            log('reduction','Unmerged node into ' + JSON.stringify(newNode));
+
+        }
+
         log('reduction','Nodes now: ' + JSON.stringify(nodes));
-        // preserve special properties
-        delete unmergable.metadata;
-        log('reduction','Unmerging ' + JSON.stringify(unmergable));
-        recursiveUnmergeWithSideEffects(newNode, unmergable);
-        log('reduction','Unmerged node into ' + JSON.stringify(newNode));
         // transform authorization and write
         var auth = newNode.metadata.authorization;
 

@@ -178,7 +178,12 @@ exports.testDomainChild = {
     "metadata": {
         "nodeId": "dummydomainxx",
         "nodeAdmins": ["testuser2"],
-        "parents": ["dummydomain"]
+        "parents": ["dummydomain","libtest"]
+    },
+    "systems": {
+        "libtest": {
+            "name": "libtest"
+        }
     },
     "setting2": true
 };
