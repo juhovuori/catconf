@@ -19,7 +19,7 @@
         "moment": "x.x.x",
         "underscore": "x.x.x",
         "jsdoc": ">= 3.2.0",
-        "jquery": ">= 1.8.3"
+        "jquery": "1.8.x"
     },
     "repository":{
         "type":"git",

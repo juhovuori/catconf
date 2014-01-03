@@ -1,3 +1,3 @@
 #!/bin/sh
 
-node_modules/nodemon/nodemon.js catconf.js
+node_modules/nodemon/bin/nodemon.js catconf.js
