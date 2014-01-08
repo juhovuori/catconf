@@ -13,10 +13,8 @@
 
             var headers = getAuthHeaders(creds);
             var opts = { 
-                /*
                 crossDomain: true,
                 xhrFields: { withCredentials: true },
-                */
                 type : method,
                 headers : headers,
                 url:url
