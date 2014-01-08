@@ -9,6 +9,31 @@
     var conf = {};
     var sessionRefreshTimeout = undefined;
 
+    function myAjax(method,url,creds,data) {
+
+            var headers = getAuthHeaders(creds);
+            var opts = { 
+                /*
+                crossDomain: true,
+                xhrFields: { withCredentials: true },
+                */
+                type : method,
+                headers : headers,
+                url:url
+            };
+
+            if (data !== undefined) {
+
+                headers['Content-Type'] = 'application/json';
+                opts.processData = false;
+                opts.data = data;
+
+            }
+        
+            return $.ajax(opts);
+
+    }
+
     function getUrl (suffix) { return conf.urlBase + suffix; }
 
     function getAuthHeaders (creds) {
@@ -25,7 +50,7 @@
             // For testing purposes, sending a custom cookie is supported
             // This does not work on standard browsers
 
-            return { 'Cookie': creds.cookie};
+            return { 'Cookie': creds.cookie };
 
         } else if (creds && creds.authorization) {
             
@@ -59,9 +84,8 @@
 
     function refreshSession(data) {
 
-        return $.ajax({
-            url: getUrl('session')
-        }).done(setSessionRefresh);
+        return myAjax('GET',getUrl('session'))
+            .done(setSessionRefresh);
 
     }
 
@@ -73,92 +97,71 @@
         getUsersAndDomains : function (options) {
 
             if (options === undefined) options = {};
-            var headers = getAuthHeaders(options.creds);
-            return $.ajax({
-                headers:headers,
-                url: getUrl('node')
-            });
+
+            return myAjax('GET',getUrl('node'),options.creds);
 
         },
 
         getUsers : function (options) {
 
             if (options === undefined) options = {};
-            var headers = getAuthHeaders(options.creds);
-            return $.ajax({
-                headers:headers,
-                url: getUrl('node?users=1')
-            });
+
+            return myAjax('GET',getUrl('node?users=1'),options.creds);
 
         },
 
         getDomainMembers : function (domain,options) {
 
             if (options === undefined) options = {};
-            var headers = getAuthHeaders(options.creds);
-            return $.ajax({
-                headers: headers,
-                url: getUrl('node?in-domain=' + encodeURIComponent(domain))
-            });
+
+            var url = getUrl('node?in-domain=' + encodeURIComponent(domain))
+
+            return myAjax('GET',url,options.creds);
 
         },
 
         getDomains : function (options) {
 
             if (options === undefined) options = {};
-            var headers = getAuthHeaders(options.creds);
-            return $.ajax({
-                headers: headers,
-                url: getUrl('node?domains=1')
-            });
+
+            return myAjax('GET',getUrl('node?domains=1'),options.creds);
 
         },
 
         putNode : function (node,options) {
 
             if (options === undefined) options = {};
-            var headers = getAuthHeaders(options.creds);
+
             var query = options.singleLevel ? '?single-level=1' :'';
             var nodeId = options.nodeId || node.metadata.nodeId;
-            headers['Content-Type'] = 'application/json';
-            return $.ajax({
-                url : getUrl('node/'+nodeId+query),
-                type : 'PUT',
-                headers : headers,
-                processData: false,
-                data : JSON.stringify(node)
-            });
+
+            return myAjax('PUT',getUrl('node/'+nodeId+query),options.creds,
+                JSON.stringify(node));
 
         },
 
         deleteNode : function (nodeId,options) {
 
             if (options === undefined) options = {};
-            var headers = getAuthHeaders(options.creds);
-            return $.ajax({ 
-                type : 'DELETE',
-                headers : headers,
-                url:getUrl('node/'+nodeId)
-            });
+
+            return myAjax('DELETE',getUrl('node/'+nodeId),options.creds);
 
         },
 
         getNode : function (nodeId,options) {
 
             if (options === undefined) options = {};
-            var headers = getAuthHeaders(options.creds);
-            var query = options.singleLevel ? '?single-level=1' :'';
-            return $.ajax({
-                headers : headers,
-                url:getUrl('node/'+nodeId+query)
-                });
+
+            var query = options.singleLevel ? '?single-level=1' : '';
+
+            return myAjax('GET',getUrl('node/'+nodeId+query),options.creds);
 
         },
 
         getMyNode : function (options) {
 
             if (options === undefined) options = {};
-            var headers = getAuthHeaders(options.creds);
+
             var nodeId = libcatconf.getUserName(options.creds);
             var def = $.Deferred();
 
@@ -168,9 +171,9 @@
 
             } else {
 
-                $.ajax({ headers : headers, url:getUrl('session') }).
-                    done(gotMySession).
-                    fail(failGetMyNode);
+                myAjax('GET',getUrl('session'),options.creds)
+                    .done(gotMySession)
+                    .fail(failGetMyNode);
                 return def;
 
             }
@@ -191,24 +194,16 @@
 
         login : function (creds) {
 
-            var headers = getAuthHeaders(creds);
-            return $.ajax({
-                url:getUrl('session'),
-                type:'POST',
-                headers: headers,
-            }).done(setSessionRefresh);
+            return myAjax('POST',getUrl('session'),creds)
+                .done(setSessionRefresh);
 
         },
 
         logout : function (creds) {
 
-            var headers = getAuthHeaders(creds);
             clearSessionRefresh();
-            return $.ajax({
-                url:getUrl('session'),
-                headers: headers,
-                type:'DELETE'
-            });
+
+            return myAjax('DELETE',getUrl('session'),creds)
 
         },
 
