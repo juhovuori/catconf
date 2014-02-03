@@ -83,7 +83,10 @@
     function refreshSession(data) {
 
         return myAjax('GET',getUrl('session'))
-            .done(setSessionRefresh);
+            .done(setSessionRefresh)
+            .error(function () {
+                console.log('failed to refresh session.',data);
+            });
 
     }
 
