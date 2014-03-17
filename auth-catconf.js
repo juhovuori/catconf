@@ -30,7 +30,7 @@ function authentication(req, res, next) {
 
         log('auth', "Start HTTP authentication");
         clearText = atob(auth.substring("Basic ".length));
-        var i = clearText.indexOf(":");
+        i = clearText.indexOf(":");
 
         if (i == -1) {
 

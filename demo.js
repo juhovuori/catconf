@@ -1,7 +1,7 @@
 function DemoCtrl($scope) {
     $scope.conf = [];
     $scope.loggedIn = false;
-    $scope.message = ""
+    $scope.message = "";
     
     $scope.showConf = function () {
 
@@ -25,7 +25,7 @@ function DemoCtrl($scope) {
         function myNodeLoaded (conf) {
             $scope.$apply(function () {
                 $scope.fullConf = conf;
-                $scope.conf = []
+                $scope.conf = [];
                 var i = 0;
                 for (var k in conf) {
                     if ( ! libcatconf.isSpecialProperty(k) )
@@ -60,9 +60,9 @@ function DemoCtrl($scope) {
                     $scope.message = "Error " + data.status;
                 }
             });
-        };
+        }
 
-        $scope.message = "authenticating in..."
+        $scope.message = "authenticating in...";
         libcatconf.login({ user:$scope.userName, pass:$scope.passWord }).
             done(loginOk).
             fail(loginFail);
@@ -73,7 +73,7 @@ function DemoCtrl($scope) {
 
         function saveOk(data) {
             $scope.$apply(function () {
-                $scope.message = "Conf saved " + JSON.stringify(data)
+                $scope.message = "Conf saved " + JSON.stringify(data);
             });
         }
 
@@ -84,7 +84,7 @@ function DemoCtrl($scope) {
         }
 
         for (var i in $scope.conf) {
-            var entry = $scope.conf[i]
+            var entry = $scope.conf[i];
             $scope.fullConf [entry.key] = entry.value;
         }
 
@@ -115,7 +115,7 @@ function DemoCtrl($scope) {
     $(document).ready(function(){
         $scope.userName = "juho";
         $scope.passWord = "koe";
-        $("#ok-button").click()
+        $("#ok-button").click();
     });
 }
 

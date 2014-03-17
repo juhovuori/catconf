@@ -7,7 +7,7 @@
 (function() {
 
     var conf = {};
-    var sessionRefreshTimeout = undefined;
+    var sessionRefreshTimeout;
 
     function myAjax(method,url,creds,data) {
 
@@ -115,7 +115,7 @@
 
             if (options === undefined) options = {};
 
-            var url = getUrl('node?in-domain=' + encodeURIComponent(domain))
+            var url = getUrl('node?in-domain=' + encodeURIComponent(domain));
 
             return myAjax('GET',url,options.creds);
 
@@ -204,13 +204,13 @@
 
             clearSessionRefresh();
 
-            return myAjax('DELETE',getUrl('session'),creds)
+            return myAjax('DELETE',getUrl('session'),creds);
 
         },
 
         isSpecialProperty : function (key) {
 
-            return (key == 'metadata')
+            return (key == 'metadata');
 
         },
 
@@ -254,6 +254,6 @@
     }
 
 
-})()
+})();
 
 

@@ -136,31 +136,31 @@ exports.getNode = function (nodeId, rawData) {
 
     }
 
-}
+};
 
 exports.listAllNodes = function () {
     
     return listNodes('all');
 
-}
+};
 
 exports.listUserNodes = function () {
     
     return listNodes('users');
 
-}
+};
 
 exports.listDomainNodes = function () {
 
     return listNodes('domains');
 
-}
+};
 
 exports.listInDomainNodes = function (nodeId) {
 
     return listNodes('in-domain',{'keys':[nodeId]});
 
-}
+};
 
 exports.deleteNode = function (nodeId) {
 
@@ -198,7 +198,7 @@ exports.deleteNode = function (nodeId) {
     }
 
 
-}
+};
 
 exports.putNode = function (node) {
 
@@ -252,7 +252,7 @@ exports.putNode = function (node) {
 
     }
 
-}
+};
 
 /**
  * Needed for manage and testing
@@ -266,7 +266,7 @@ exports.dbExists = function() {
 
     return $.ajax({ url:dbUrl, type:'GET', headers:headers });
 
-}
+};
 
 /**
  * Needed for manage and testing
@@ -276,8 +276,8 @@ exports._WARNING_destroyDB = function() {
     var headers = {
         'Authorization': conf.couchDB.authorization,
     };
-    return $.ajax({ url:dbUrl, type:'DELETE', headers:headers })
-}
+    return $.ajax({ url:dbUrl, type:'DELETE', headers:headers });
+};
 
 /**
  * Needed for manage and testing
@@ -332,7 +332,7 @@ exports.createDB = function (world) {
 
         }
 
-        function results (err,results) {
+        function results (err,r) {
 
             if (err) createFail(new Error(msg));
             else createOk();
@@ -345,7 +345,7 @@ exports.createDB = function (world) {
 
     function createOk(data) { def.resolve(data); }
 
-}
+};
 
 exports.status = function () {
 
@@ -354,7 +354,7 @@ exports.status = function () {
     };
     var serverUrl = conf.couchDB.url;
     var dbUrl = conf.couchDB.url+'/'+conf.couchDB.db;
-    var rv = {}
+    var rv = {};
     var def = $.Deferred();
 
     $.ajax({ url:serverUrl, type:'GET', headers:headers })
@@ -386,4 +386,4 @@ exports.status = function () {
 
     }
 
-}
+};

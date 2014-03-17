@@ -26,7 +26,7 @@ function getUserId(req) {
 
 }
 
-function authorizeAgainstNode(node,user,pass,compared) {
+function authorizeAgainstNode(node,user,pass) {
 
     var def = $.Deferred();
 
@@ -110,7 +110,7 @@ function mergeWithSideEffects (merged,node) {
             ((nodeT == 'object') && (mergedT != 'object'))) {
 
             log('construction','Merging key ' + key);
-            merged[key] = node[key]
+            merged[key] = node[key];
 
         } else if ((nodeT == 'object') && (mergedT == 'object')) {
 
@@ -195,8 +195,6 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
                     return;
 
                 } else if (singleLoadDef.state() == "resolved") {
-
-                    ;
 
                 } else { // == "pending"
 
@@ -325,7 +323,8 @@ function queueNodeLoad (userId,nodeId,singleLevel,parentsOverRide,dieOnError) {
 
 function listNodes (req,res) {
 
-
+    /*jshint sub:true*/    
+    
     if (req.query['domains'] !== undefined) {
 
         storage.listDomainNodes().done(listOk).fail(listFail);
@@ -364,6 +363,8 @@ function listNodes (req,res) {
 
 function getNode (req,res) {
 
+    /*jshint sub:true*/    
+
     var nodeId = req.params.id;
     var singleLevel = req.query['single-level'] !== undefined;
     var rawData = req.query['raw'] !== undefined;
@@ -378,7 +379,7 @@ function getNode (req,res) {
         log('get','Node loading failed');
         res.send(err.statusText+'\n',err.status);
 
-    };
+    }
 
     function getDataLoaded (nodesLoaded) {
 
@@ -458,10 +459,10 @@ function deleteNode (req,res) {
 
         }
 
-        if (children.length != 0) {
+        if (children.length !== 0) {
 
             // Cannot delete a node that has children
-            return "Parent of other nodes cannot be deleted."
+            return "Parent of other nodes cannot be deleted.";
 
         }
 
@@ -473,7 +474,7 @@ function deleteNode (req,res) {
         log('delete', 'Delete failed ' + err.status||500 + ' ' + err.statusText);
         res.send(err.statusText+'\n',err.status||500);
 
-    };
+    }
 
     function deleteOk (data) { res.send(data); }
 
@@ -517,7 +518,7 @@ function putNode (req,res) {
                 (typeof(node[key]) == 'object')) {
 
                 child = recursiveUnmerge(node[key],unmergable[key]);
-                if (Object.keys(child).length != 0) 
+                if (Object.keys(child).length !== 0) 
                     overRidingElements[key] = child;
 
             } else if (node[key] != unmergable[key]) {
@@ -594,7 +595,7 @@ function putNode (req,res) {
 
             }
 
-        };
+        }
 
         if (metadata.authorization !== undefined) {
 
@@ -641,7 +642,7 @@ function putNode (req,res) {
         // TODO: This should be checked in json parsing middleware.
         // Checking it here results in extra serialization step => slow
 
-        if (conf.nodeSizeLimit == 0) return false;
+        if (conf.nodeSizeLimit === 0) return false;
 
         if (JSON.stringify(node).length > conf.nodeSizeLimit) return true;
 
@@ -747,7 +748,7 @@ function putNode (req,res) {
 
                     } else {
 
-                        var auth = { type : 'bcrypt', crypted : crypted }
+                        var auth = { type : 'bcrypt', crypted : crypted };
                         singleLevelNode.metadata.authorization = auth;
                         log('put','Transformed authorization to ' + JSON.stringify(auth));
                         writeFinally(singleLevelNode);

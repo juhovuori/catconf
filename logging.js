@@ -5,7 +5,7 @@ var fs = require('fs');
 var moment = require('moment');
 
 var settings = conf.logging.aspects;
-var logfile = undefined;
+var logfile;
 
 exports.log = log;
 
@@ -24,7 +24,7 @@ if (conf.logging.logfile) {
 
 function actuallyLog(ts,aspect,message) {
 
-    var message = ts + ' [' + aspect + '] ' + message + '\n';
+    message = ts + ' [' + aspect + '] ' + message + '\n';
 
     if ( conf.logging.logOnScreen ) {
 
@@ -41,11 +41,11 @@ function actuallyLog(ts,aspect,message) {
 
 function log(aspect,message) {
 
-    if (settings[aspect] != false) {
+    if (settings[aspect] !== false) {
 
         var ts = moment().format(conf.logging.timestamp);
 
-        if (settings[aspect] != true) {
+        if (settings[aspect] !== true) {
 
             actuallyLog(ts, 'log','Invalid log type \'' + aspect + '\'');
 

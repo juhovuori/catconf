@@ -26,7 +26,7 @@ var bcrypt = require('bcrypt');
 if (require.main === module) { main (); }
 
 function main() {
-
+    /*jshint sub:true*/
     var domain = opts['<domain>'];
     var username = opts['<username>'];
     var really = opts['<really>'];
@@ -88,7 +88,7 @@ function promptPassword (callback) {
     var password = '';
     process.stdout.write('Password: ');
     process.stdin.on('data', function (ch) {
-        var ch = ch + "";
+        ch = ch + "";
 
         switch (ch) {
             case "\n": case "\r": case "\u0004":
@@ -169,7 +169,7 @@ function password(username) {
                         var authorization = {
                             type : 'bcrypt',
                             crypted : crypted,
-                        }
+                        };
                         body.metadata.authorization = authorization;
                         console.log(authorization);
                         if (err) {
@@ -220,8 +220,8 @@ function uninstall(arg) {
 
 function install(world) {
 
-    if (VERBOSE) console.log('Attempting to create database'
-        + (world !== undefined ?  'and populate it with initial nodes.' : '')
+    if (VERBOSE) console.log('Attempting to create database' +
+        (world !== undefined ?  'and populate it with initial nodes.' : '')
         );
 
     storage.createDB(world)
